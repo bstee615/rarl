@@ -8,6 +8,7 @@ for episode in range(20):
         print(obs)
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)  # take a random action
+        initial_obs = env.reset()
         if done:
             print(f"Episode finished. {ts=}")
             break
