@@ -47,29 +47,47 @@ class BaseEnv(AcrobotEnv):
         return self._get_ob()
 
 
-class MainEnv(gym.Env):
-    def __init__(self, base: BaseEnv):
-        super(MainEnv, self).__init__()
+class AdversarialEnv(gym.Env):
+    """
+    An environment for the main agent to act, with adversarial actions.
+    Required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, base: BaseAcrobotEnv):
+        super(AdversarialEnv, self).__init__()
         self.base = base
+        self.action_space = self.base.action_space
+        self.observation_space = self.base.observation_space
 
     def step(self, main_action):
-        adv = self.adv_agent
-        # TODO test this line
-        adv_action = self.adv_agent.predict(self.base.get_ob())
-        o, r, d, i = self.base.speical_step(main_action, adv_action)
-        return o, r, d, i
+        prestep_obs = self.base.get_ob()
+        adv_action, _ = self.base.adv_agent.predict(prestep_obs)
+        poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
+        return poststep_obs, r, d, i
 
-    def set_adv_action(self, adv_action):
-        self.adv_action = adv_action
+    def reset(self):
+        return self.base.reset()
+
+    def render(self, mode='human'):
+        return self.base.render(mode)
+
+    def close(self):
+        return self.base.close()
 
 
-class AdvEnv(gym.Env):
-    def __init__(self, base):
-        super(AdvEnv, self).__init__()
-        self.base = base
+if __name__ == '__main__':
+    from stable_baselines3 import PPO
 
-    def step(self, adv_action):
-        main = self.base.main_agent
-        main_action = main.get_action()
-        o, r, d, i = self.base.special_step(main_action, adv_action)
-        return o, r, d, i
+    base_env = BaseAcrobotEnv()
+    env = AdversarialEnv(base_env)
+
+    main_agent = PPO("MlpPolicy", env, verbose=1)
+    adversarial_agent = PPO("MlpPolicy", env, verbose=1)
+
+    base_env.main_agent = main_agent
+    base_env.adv_agent = adversarial_agent
+
+    obs = env.reset()
+    a, _ = main_agent.predict(obs)
+    env.step(a)
