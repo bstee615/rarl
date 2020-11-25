@@ -46,15 +46,15 @@ class BaseAcrobotEnv(AcrobotEnv):
         return self._get_ob()
 
 
-class AdversarialEnv(gym.Env):
+class MainAgentEnv(gym.Env):
     """
-    An environment for the main agent to act, with adversarial actions.
+    An environment for the main agent to act against adversarial actions.
     Required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
     """
     metadata = {'render.modes': ['human']}
 
     def __init__(self, base: BaseAcrobotEnv):
-        super(AdversarialEnv, self).__init__()
+        super(MainAgentEnv, self).__init__()
         self.base = base
         self.action_space = self.base.action_space
         self.observation_space = self.base.observation_space
@@ -75,11 +75,40 @@ class AdversarialEnv(gym.Env):
         return self.base.close()
 
 
+class AdversarialAgentEnv(gym.Env):
+    """
+    An environment for the adversarial agent to act, while the main agent takes actions.
+    Required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, base: BaseAcrobotEnv):
+        super(AdversarialAgentEnv, self).__init__()
+        self.base = base
+        self.action_space = self.base.action_space
+        self.observation_space = self.base.observation_space
+
+    def step(self, adv_action):
+        prestep_obs = self.base.get_ob()
+        main_action, _ = self.base.main_agent.predict(prestep_obs)
+        poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
+        return poststep_obs, -r, d, i
+
+    def reset(self):
+        return self.base.reset()
+
+    def render(self, mode='human'):
+        return self.base.render(mode)
+
+    def close(self):
+        return self.base.close()
+
+
 if __name__ == '__main__':
     from stable_baselines3 import PPO
 
     base_env = BaseAcrobotEnv()
-    env = AdversarialEnv(base_env)
+    env = MainAgentEnv(base_env)
 
     main_agent = PPO("MlpPolicy", env, verbose=1)
     adversarial_agent = PPO("MlpPolicy", env, verbose=1)
