@@ -107,13 +107,16 @@ class AdversarialAgentEnv(gym.Env):
 if __name__ == '__main__':
     from stable_baselines3 import PPO
 
+    # Set up environments
     base_env = BaseAcrobotEnv()
     main_env = MainAgentEnv(base_env)
     adv_env = AdversarialAgentEnv(base_env)
 
+    # Set up agents
     main_agent = PPO("MlpPolicy", main_env, verbose=1)
     adv_agent = PPO("MlpPolicy", adv_env, verbose=1)
 
+    # Bridge agents
     base_env.main_agent = main_agent
     base_env.adv_agent = adv_agent
 
