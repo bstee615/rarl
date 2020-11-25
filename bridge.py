@@ -1,11 +1,6 @@
-import abc
-
-import gym
-
-
-class BaseBridgeEnv(abc.ABC, gym.core.Env):
+class Bridge:
     """
-    Base environment wrapping a Gym task where two actors act in each step.
+    Bridge between main agent and adversarial agent.
     """
 
     def __init__(self):
@@ -25,17 +20,3 @@ class BaseBridgeEnv(abc.ABC, gym.core.Env):
         Returns whether this environment is linked to both the main and adversarial agent
         """
         return self.adv_agent is not None and self.main_agent is not None
-
-    @abc.abstractmethod
-    def get_ob(self):
-        """
-        Return the latest observation s_t
-        """
-        pass
-
-    @abc.abstractmethod
-    def step_two_agents(self, main_action, adv_action):
-        """
-        Step the environment with an action from each agents.
-        """
-        pass

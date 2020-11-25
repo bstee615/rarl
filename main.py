@@ -1,12 +1,15 @@
 from stable_baselines3 import PPO
 
 # Set up environments
-from gym_rarl.envs.bridge_acrobot import BridgeAcrobotEnv
+from bridge import Bridge
+from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnv
 from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
 
-base_env = BridgeAcrobotEnv()
-main_env = MainRarlEnv(base_env)
-adv_env = AdversarialRarlEnv(base_env)
+# Set up environments
+base_env = AdversarialAcrobotEnv()
+bridge = Bridge()
+main_env = MainRarlEnv(base_env, bridge)
+adv_env = AdversarialRarlEnv(base_env, bridge)
 
 # Set up agents
 main_agent = PPO("MlpPolicy", main_env, verbose=1)

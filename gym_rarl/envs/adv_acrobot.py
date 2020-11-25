@@ -1,9 +1,9 @@
 from gym.envs.classic_control.acrobot import *
 
-from gym_rarl.envs.bridge_env import BaseBridgeEnv
+from gym_rarl.envs.adv_env import BaseAdversarialEnv
 
 
-class BridgeAcrobotEnv(BaseBridgeEnv, AcrobotEnv):
+class AdversarialAcrobotEnv(BaseAdversarialEnv, AcrobotEnv):
     """
     Base env for Acrobot task which allows main/adv to act in each step
     """

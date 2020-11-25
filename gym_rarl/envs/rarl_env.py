@@ -2,7 +2,9 @@ import abc
 
 import gym
 
-from gym_rarl.envs.bridge_acrobot import BridgeAcrobotEnv
+from bridge import Bridge
+from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnv
+from gym_rarl.envs.adv_env import BaseAdversarialEnv
 
 
 class BaseRarlEnv(abc.ABC, gym.Env):
@@ -11,9 +13,10 @@ class BaseRarlEnv(abc.ABC, gym.Env):
     Defines required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
     """
 
-    def __init__(self, base: BridgeAcrobotEnv):
+    def __init__(self, base: BaseAdversarialEnv, bridge: Bridge):
         super().__init__()
         self.base = base
+        self.bridge = bridge
         self.action_space = self.base.action_space
         self.observation_space = self.base.observation_space
 
@@ -37,10 +40,10 @@ class MainRarlEnv(BaseRarlEnv):
     """
 
     def step(self, main_action):
-        assert self.base.is_linked()
+        assert self.bridge.is_linked()
 
         prestep_obs = self.base.get_ob()
-        adv_action, _ = self.base.adv_agent.predict(prestep_obs)
+        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, r, d, i
 
@@ -51,10 +54,10 @@ class AdversarialRarlEnv(BaseRarlEnv):
     """
 
     def step(self, adv_action):
-        assert self.base.is_linked()
+        assert self.bridge.is_linked()
 
         prestep_obs = self.base.get_ob()
-        main_action, _ = self.base.main_agent.predict(prestep_obs)
+        main_action, _ = self.bridge.main_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, -r, d, i
 
@@ -63,16 +66,18 @@ if __name__ == '__main__':
     from stable_baselines3 import PPO
 
     # Set up environments
-    base_env = BridgeAcrobotEnv()
-    main_env = MainRarlEnv(base_env)
-    adv_env = AdversarialRarlEnv(base_env)
+    base_env = AdversarialAcrobotEnv()
+
+    bridge = Bridge()
+    main_env = MainRarlEnv(base_env, bridge)
+    adv_env = AdversarialRarlEnv(base_env, bridge)
 
     # Set up agents
     main_agent = PPO("MlpPolicy", main_env, verbose=1)
     adv_agent = PPO("MlpPolicy", adv_env, verbose=1)
 
     # Link agents
-    base_env.link_agents(main_agent, adv_agent)
+    bridge.link_agents(main_agent, adv_agent)
 
     # Main agent tries to act
     obs = main_env.reset()
