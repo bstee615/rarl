@@ -2,7 +2,7 @@ import abc
 
 import gym
 
-from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnvWrapper
+from gym_rarl.envs.bridge_acrobot import BridgeAcrobotEnv
 
 
 class BaseRarlEnv(abc.ABC, gym.Env):
@@ -11,7 +11,7 @@ class BaseRarlEnv(abc.ABC, gym.Env):
     Defines required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
     """
 
-    def __init__(self, base: AdversarialAcrobotEnvWrapper):
+    def __init__(self, base: BridgeAcrobotEnv):
         super().__init__()
         self.base = base
         self.action_space = self.base.action_space
@@ -41,7 +41,7 @@ class MainRarlEnv(BaseRarlEnv):
 
         prestep_obs = self.base.get_ob()
         adv_action, _ = self.base.adv_agent.predict(prestep_obs)
-        poststep_obs, r, d, i = self.base.step_two_actors(main_action, adv_action)
+        poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, r, d, i
 
 
@@ -55,7 +55,7 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
         prestep_obs = self.base.get_ob()
         main_action, _ = self.base.main_agent.predict(prestep_obs)
-        poststep_obs, r, d, i = self.base.step_two_actors(main_action, adv_action)
+        poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, -r, d, i
 
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     from stable_baselines3 import PPO
 
     # Set up environments
-    base_env = AdversarialAcrobotEnvWrapper()
+    base_env = BridgeAcrobotEnv()
     main_env = MainRarlEnv(base_env)
     adv_env = AdversarialRarlEnv(base_env)
 

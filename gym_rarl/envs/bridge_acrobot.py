@@ -1,9 +1,9 @@
 from gym.envs.classic_control.acrobot import *
 
-from gym_rarl.envs.adv_env import BaseAdversarialEnvWrapper
+from gym_rarl.envs.bridge_env import BaseBridgeEnv
 
 
-class AdversarialAcrobotEnvWrapper(BaseAdversarialEnvWrapper, AcrobotEnv):
+class BridgeAcrobotEnv(BaseBridgeEnv, AcrobotEnv):
     """
     Base env for Acrobot task which allows main/adv to act in each step
     """
@@ -11,7 +11,7 @@ class AdversarialAcrobotEnvWrapper(BaseAdversarialEnvWrapper, AcrobotEnv):
     def get_ob(self):
         return self._get_ob()
 
-    def step_two_actors(self, main_action, adv_action):
+    def step_two_agents(self, main_action, adv_action):
         """
         Copied from AcrobotEnv (gym==0.17.3)
         """
