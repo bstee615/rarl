@@ -108,14 +108,21 @@ if __name__ == '__main__':
     from stable_baselines3 import PPO
 
     base_env = BaseAcrobotEnv()
-    env = MainAgentEnv(base_env)
+    main_env = MainAgentEnv(base_env)
+    adv_env = AdversarialAgentEnv(base_env)
 
-    main_agent = PPO("MlpPolicy", env, verbose=1)
-    adversarial_agent = PPO("MlpPolicy", env, verbose=1)
+    main_agent = PPO("MlpPolicy", main_env, verbose=1)
+    adv_agent = PPO("MlpPolicy", adv_env, verbose=1)
 
     base_env.main_agent = main_agent
-    base_env.adv_agent = adversarial_agent
+    base_env.adv_agent = adv_agent
 
-    obs = env.reset()
+    # Main agent tries to act
+    obs = main_env.reset()
     a, _ = main_agent.predict(obs)
-    env.step(a)
+    main_env.step(a)
+
+    # Adversarial agent tries to act
+    obs = adv_env.reset()
+    a, _ = adv_agent.predict(obs)
+    adv_env.step(a)
