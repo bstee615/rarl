@@ -3,7 +3,6 @@ import abc
 import gym
 
 from bridge import Bridge
-from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnv
 from gym_rarl.envs.adv_env import BaseAdversarialEnv
 
 
@@ -64,9 +63,10 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
 if __name__ == '__main__':
     from stable_baselines3 import PPO
+    from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 
     # Set up environments
-    base_env = AdversarialAcrobotEnv()
+    base_env = AdversarialCartPoleEnv()
 
     bridge = Bridge()
     main_env = MainRarlEnv(base_env, bridge)

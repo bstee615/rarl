@@ -2,11 +2,11 @@ from stable_baselines3 import PPO
 
 # Set up environments
 from bridge import Bridge
-from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnv
+from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
 
 # Set up environments
-base_env = AdversarialAcrobotEnv()
+base_env = AdversarialCartPoleEnv()
 bridge = Bridge()
 main_env = MainRarlEnv(base_env, bridge)
 adv_env = AdversarialRarlEnv(base_env, bridge)
