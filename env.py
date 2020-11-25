@@ -45,6 +45,14 @@ class BaseAcrobotEnv(AcrobotEnv):
     def get_ob(self):
         return self._get_ob()
 
+    def link_agents(self, main_agent, adv_agent):
+        self.main_agent = main_agent
+        self.adv_agent = adv_agent
+
+    def is_linked(self):
+        """Returns whether this environment linked with both the main and adversarial agent"""
+        return self.adv_agent is not None and self.main_agent is not None
+
 
 class MainAgentEnv(gym.Env):
     """
@@ -60,6 +68,8 @@ class MainAgentEnv(gym.Env):
         self.observation_space = self.base.observation_space
 
     def step(self, main_action):
+        assert self.base.is_linked()
+
         prestep_obs = self.base.get_ob()
         adv_action, _ = self.base.adv_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
@@ -89,6 +99,8 @@ class AdversarialAgentEnv(gym.Env):
         self.observation_space = self.base.observation_space
 
     def step(self, adv_action):
+        assert self.base.is_linked()
+
         prestep_obs = self.base.get_ob()
         main_action, _ = self.base.main_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
@@ -116,9 +128,8 @@ if __name__ == '__main__':
     main_agent = PPO("MlpPolicy", main_env, verbose=1)
     adv_agent = PPO("MlpPolicy", adv_env, verbose=1)
 
-    # Bridge agents
-    base_env.main_agent = main_agent
-    base_env.adv_agent = adv_agent
+    # Link agents
+    base_env.link_agents(main_agent, adv_agent)
 
     # Main agent tries to act
     obs = main_env.reset()
