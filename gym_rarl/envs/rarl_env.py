@@ -2,12 +2,12 @@ import abc
 
 import gym
 
-from gym_rarl.envs.rarl_acrobot import AdversarialAcrobotEnvWrapper
+from gym_rarl.envs.adv_acrobot import AdversarialAcrobotEnvWrapper
 
 
 class BaseRarlEnv(abc.ABC, gym.Env):
     """
-    A Gym environment wrapper for RARL agents.
+    A Gym environment where an agent can act against an adversary.
     Defines required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
     """
 
@@ -41,7 +41,7 @@ class MainRarlEnv(BaseRarlEnv):
 
         prestep_obs = self.base.get_ob()
         adv_action, _ = self.base.adv_agent.predict(prestep_obs)
-        poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
+        poststep_obs, r, d, i = self.base.step_two_actors(main_action, adv_action)
         return poststep_obs, r, d, i
 
 
@@ -55,7 +55,7 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
         prestep_obs = self.base.get_ob()
         main_action, _ = self.base.main_agent.predict(prestep_obs)
-        poststep_obs, r, d, i = self.base.step_two_actions(main_action, adv_action)
+        poststep_obs, r, d, i = self.base.step_two_actors(main_action, adv_action)
         return poststep_obs, -r, d, i
 
 
