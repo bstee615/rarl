@@ -1,11 +1,9 @@
-import unittest
-
 import numpy as np
 
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 
 
-class MyTestCase(unittest.TestCase):
+class TestAdversarialActionIntegration:
 
     def setup_method(self, _):
         self.control_env = AdversarialCartPoleEnv()
@@ -34,12 +32,12 @@ class MyTestCase(unittest.TestCase):
         np.testing.assert_almost_equal(self.control_env.step(1)[0], self.adv_env.step(1)[0])
 
     def test_adv_noop(self):
-        np.testing.assert_almost_equal(self.control_env.step(1)[0], self.adv_env.step_two_agents(1, 0)[0])
+        for _ in range(10):
+            np.testing.assert_almost_equal(self.control_env.step(1)[0], self.adv_env.step_two_agents(1, 0)[0])
 
     def test_adv_diff(self):
+        for _ in range(10):
+            last_control_state = self.control_env.step_two_agents(1, -1)[0]
+            last_adv_state = self.adv_env.step_two_agents(1, 1)[0]
         np.testing.assert_raises(AssertionError, np.testing.assert_almost_equal,
-                                 self.control_env.step_two_agents(1, -1)[0], self.adv_env.step_two_agents(1, 1)[0])
-
-
-if __name__ == '__main__':
-    unittest.main()
+                                 last_control_state, last_adv_state)
