@@ -1,3 +1,5 @@
+from time import sleep
+
 from gym.envs.classic_control.acrobot import *
 from pybullet_envs.bullet import CartPoleBulletEnv
 
@@ -20,13 +22,13 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         p = self._p
         if self._discrete_actions:
             force = self.force_mag if action == 1 else -self.force_mag
-            adv_force = [self.force_mag, 0, 0] if adv_action == 1 else [-self.force_mag, 0,
-                                                                        0] if adv_action == -1 else [0, 0, 0]
+            adv_force = (5, 0, 0) if adv_action == 1 else (
+                -5, 0, 0) if adv_action == -1 else (0, 0, 0)
         else:
             raise Exception('benjis: continuous action space not supported')
             # force = action[0]
 
-        p.applyExternalForce(self.cartpole, 1, forceObj=adv_force, posObj=[0, 0, 0], flags=p.WORLD_FRAME)
+        p.applyExternalForce(self.cartpole, 1, forceObj=adv_force, posObj=(0, 0, 0), flags=p.WORLD_FRAME)
 
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=force)
         p.stepSimulation()
@@ -42,3 +44,18 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         reward = 1.0
 
         return np.array(self.state), reward, done, {}
+
+
+def main():
+    env = AdversarialCartPoleEnv(renders=True)
+    env.reset()
+    for _ in range(1000):
+        env.render()
+        sleep(1 / 30)
+        env.step_two_agents(0, 1)
+        # env.step(0)
+    env.close()
+
+
+if __name__ == '__main__':
+    main()
