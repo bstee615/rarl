@@ -42,7 +42,7 @@ class MainRarlEnv(BaseRarlEnv):
         assert self.bridge.is_linked()
 
         prestep_obs = self.base.get_ob()
-        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
+        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs, deterministic=True)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, r, d, i
 
@@ -56,7 +56,7 @@ class AdversarialRarlEnv(BaseRarlEnv):
         assert self.bridge.is_linked()
 
         prestep_obs = self.base.get_ob()
-        main_action, _ = self.bridge.main_agent.predict(prestep_obs)
+        main_action, _ = self.bridge.main_agent.predict(prestep_obs, deterministic=True)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, -r, d, i
 
