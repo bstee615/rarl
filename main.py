@@ -18,12 +18,15 @@ def get_args():
     parser.add_argument('--N_mu', type=int, default=2)
     parser.add_argument('--N_nu', type=int, default=2)
     parser.add_argument('--N_traj', type=int, default=128)
-    args = parser.parse_args()
+    parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--demo', dest='demo_mode', action='store_true')
+    arguments = parser.parse_args()
 
-    assert args.N_steps % 2 == 0
-    assert isinstance(args.N_traj / args.N_steps, int)
+    assert arguments.N_steps % 2 == 0
+    assert arguments.N_traj % arguments.N_steps == 0
+    arguments.N_traj_over_n_steps = arguments.N_traj / arguments.N_steps
 
-    return args
+    return arguments
 
 
 args = get_args()
@@ -44,18 +47,18 @@ def setup_adv():
     """
     Setup models and env for adversarial training
     """
-    base_env = AdversarialCartPoleEnv(renders=True)
+    base_env = AdversarialCartPoleEnv(renders=args.demo_mode)
     base_env.seed(100)
 
     bridge = Bridge()
-    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=100)
-    adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=100)
+    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
+    adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
     main_env.seed(100)
     adv_env.seed(100)
 
     # Set up agents
-    prot_agent = PPO("MlpPolicy", main_env, verbose=True, seed=123456)
-    adv_agent = PPO("MlpPolicy", adv_env, verbose=False, seed=123456)
+    prot_agent = PPO("MlpPolicy", main_env, verbose=True, seed=args.seed)
+    adv_agent = PPO("MlpPolicy", adv_env, verbose=False, seed=args.seed)
 
     # Link agents
     bridge.link_agents(prot_agent, adv_agent)
@@ -68,9 +71,9 @@ def setup_control():
     """
     Setup a normal model and environment a a control
     """
-    env = dummy(lambda: CartPoleBulletEnv(renders=True), seed=0)
+    env = dummy(lambda: CartPoleBulletEnv(renders=True), seed=args.seed)
     env.seed(0)
-    model = PPO("MlpPolicy", env, verbose=True, seed=123456)
+    model = PPO("MlpPolicy", env, verbose=True, seed=args.seed)
     return model, env
 
 
@@ -89,15 +92,16 @@ def train(prot, adv):
     del prot
 
 
-def demo(env):
+def run(env):
     """
     Run model in env
     """
     model = PPO.load("models/ppo-rarl-butt")
     obs = env.reset()
     for ts in range(10000):
-        env.render()
-        action, _ = model.predict(obs, deterministic=True)
+        if args.demo_mode:
+            env.render()
+        action, _ = model.predict(obs, deterministic=args.seed is not None)
         obs, reward, done, info = env.step(action)  # take a random action
         if done:
             print(f"Episode finished. {ts=}")
@@ -106,8 +110,9 @@ def demo(env):
 
 def main():
     prot, adv, env = setup_adv()
-    # train(prot, adv)
-    demo(env)
+    if not args.demo_mode:
+        train(prot, adv)
+    run(env)
     env.close()
 
 
