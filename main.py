@@ -1,3 +1,5 @@
+import argparse
+
 from pybullet_envs.bullet import CartPoleBulletEnv
 from stable_baselines3 import PPO
 # Set up environments
@@ -8,16 +10,23 @@ from bridge import Bridge
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
 
-N_steps = 64
 
-# %% Train the agent
-N_iter = 10
-N_mu = 2
-N_nu = 2
-N_traj = 128
-N_traj_over_n_steps = N_traj / N_steps
-assert N_steps % 2 == 0
-assert int(N_traj_over_n_steps)  # works
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--N_steps', type=int, default=64)
+    parser.add_argument('--N_iter', type=int, default=10)
+    parser.add_argument('--N_mu', type=int, default=2)
+    parser.add_argument('--N_nu', type=int, default=2)
+    parser.add_argument('--N_traj', type=int, default=128)
+    args = parser.parse_args()
+
+    assert args.N_steps % 2 == 0
+    assert isinstance(args.N_traj / args.N_steps, int)
+
+    return args
+
+
+args = get_args()
 
 
 def dummy(env_constructor, seed):
@@ -69,13 +78,13 @@ def train(prot, adv):
     """
     Train according to Algorithm 1
     """
-    for i in range(N_iter):
-        for j in range(N_mu):
+    for i in range(args.N_iter):
+        for j in range(args.N_mu):
             # rollout N_traj timesteps training the protagonist
-            prot.learn(total_timesteps=N_traj_over_n_steps, reset_num_timesteps=False)
-        for j in range(N_nu):
+            prot.learn(total_timesteps=args.N_traj_over_n_steps, reset_num_timesteps=False)
+        for j in range(args.N_nu):
             # rollout N_traj timesteps training the adversary
-            adv.learn(total_timesteps=N_traj_over_n_steps, reset_num_timesteps=False)
+            adv.learn(total_timesteps=args.N_traj_over_n_steps, reset_num_timesteps=False)
     prot.save("models/ppo-rarl-butt")
     del prot
 
