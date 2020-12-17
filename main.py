@@ -20,11 +20,16 @@ def get_args():
     parser.add_argument('--N_traj', type=int, default=128)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--demo', dest='demo_mode', action='store_true')
+    parser.add_argument('--name', type=str, default='rarl-temp')
+    parser.add_argument('--verbose', action='store_true')
     arguments = parser.parse_args()
 
     assert arguments.N_steps % 2 == 0
     assert arguments.N_traj % arguments.N_steps == 0
     arguments.N_traj_over_n_steps = arguments.N_traj / arguments.N_steps
+
+    arguments.pickle = f'./data/{arguments.name}'
+    arguments.logs = f'./logs/{arguments.name}'
 
     return arguments
 
@@ -57,8 +62,8 @@ def setup_adv():
     adv_env.seed(100)
 
     # Set up agents
-    prot_agent = PPO("MlpPolicy", main_env, verbose=True, seed=args.seed)
-    adv_agent = PPO("MlpPolicy", adv_env, verbose=False, seed=args.seed)
+    prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_prot')
+    adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_adv')
 
     # Link agents
     bridge.link_agents(prot_agent, adv_agent)
@@ -88,7 +93,8 @@ def train(prot, adv):
         for j in range(args.N_nu):
             # rollout N_traj timesteps training the adversary
             adv.learn(total_timesteps=args.N_traj_over_n_steps, reset_num_timesteps=False)
-    prot.save("models/ppo-rarl-butt")
+    prot.save(f'{args.pickle}_prot')
+    adv.save(f'{args.pickle}_adv')
     del prot
 
 
@@ -96,7 +102,7 @@ def run(env):
     """
     Run model in env
     """
-    model = PPO.load("models/ppo-rarl-butt")
+    model = PPO.load(args.pickle)
     obs = env.reset()
     for ts in range(10000):
         if args.demo_mode:
