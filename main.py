@@ -25,11 +25,14 @@ def get_args():
     arguments = parser.parse_args()
 
     assert arguments.N_steps % 2 == 0
-    assert arguments.N_traj % arguments.N_steps == 0
-    arguments.N_traj_over_n_steps = arguments.N_traj / arguments.N_steps
+    # assert arguments.N_traj % arguments.N_steps == 0
+    # arguments.N_traj_over_n_steps = arguments.N_traj / arguments.N_steps
 
-    arguments.pickle = f'./data/{arguments.name}'
+    arguments.pickle = f'./models/{arguments.name}'
     arguments.logs = f'./logs/{arguments.name}'
+
+    print(f'pickling to {arguments.pickle}')
+    print(f'logging to {arguments.logs}')
 
     return arguments
 
@@ -86,13 +89,17 @@ def train(prot, adv):
     """
     Train according to Algorithm 1
     """
+    reset_prot = True
+    reset_adv = True
     for i in range(args.N_iter):
         for j in range(args.N_mu):
             # rollout N_traj timesteps training the protagonist
-            prot.learn(total_timesteps=args.N_traj_over_n_steps, reset_num_timesteps=False)
+            prot.learn(total_timesteps=args.N_traj, reset_num_timesteps=reset_prot)
+            reset_prot = False
         for j in range(args.N_nu):
             # rollout N_traj timesteps training the adversary
-            adv.learn(total_timesteps=args.N_traj_over_n_steps, reset_num_timesteps=False)
+            adv.learn(total_timesteps=args.N_traj, reset_num_timesteps=reset_adv)
+            reset_adv = False
     prot.save(f'{args.pickle}_prot')
     adv.save(f'{args.pickle}_adv')
     del prot
@@ -102,7 +109,7 @@ def run(env):
     """
     Run model in env
     """
-    model = PPO.load(args.pickle)
+    model = PPO.load(f'{args.pickle}_prot')
     obs = env.reset()
     for ts in range(10000):
         if args.demo_mode:
