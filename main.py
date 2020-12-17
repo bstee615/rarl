@@ -22,6 +22,7 @@ def get_args():
     parser.add_argument('--demo', dest='demo_mode', action='store_true')
     parser.add_argument('--name', type=str, default='rarl-temp')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--control', action='store_true')
     arguments = parser.parse_args()
 
     assert arguments.N_steps % 2 == 0
@@ -56,11 +57,14 @@ def setup_adv():
     Setup models and env for adversarial training
     """
     base_env = AdversarialCartPoleEnv(renders=args.demo_mode)
+    # base_env.seed(args.seed)
     base_env.seed(100)
 
     bridge = Bridge()
     main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
     adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
+    # main_env.seed(args.seed)
+    # adv_env.seed(args.seed)
     main_env.seed(100)
     adv_env.seed(100)
 
@@ -79,9 +83,10 @@ def setup_control():
     """
     Setup a normal model and environment a a control
     """
-    env = dummy(lambda: CartPoleBulletEnv(renders=True), seed=args.seed)
-    env.seed(0)
-    model = PPO("MlpPolicy", env, verbose=True, seed=args.seed)
+    env = dummy(lambda: CartPoleBulletEnv(renders=args.demo_mode), seed=args.seed)
+    # env.seed(args.seed)
+    env.seed(100)
+    model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_control')
     return model, env
 
 
@@ -122,11 +127,16 @@ def run(env):
 
 
 def main():
-    prot, adv, env = setup_adv()
-    if not args.demo_mode:
-        train(prot, adv)
-    run(env)
-    env.close()
+    if args.control:
+        model, _ = setup_control()
+        model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_traj)
+        model.save(f'{args.pickle}_control')
+    else:
+        prot, adv, env = setup_adv()
+        if not args.demo_mode:
+            train(prot, adv)
+        run(env)
+        env.close()
 
 
 if __name__ == '__main__':
