@@ -24,6 +24,7 @@ def get_args():
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--log', action='store_true')
     parser.add_argument('--control', action='store_true')
+    parser.add_argument('--render', action='store_true')
     arguments = parser.parse_args()
 
     assert arguments.N_steps % 2 == 0
@@ -57,7 +58,7 @@ def setup_adv():
     """
     Setup models and env for adversarial training
     """
-    base_env = AdversarialCartPoleEnv(renders=args.demo_mode)
+    base_env = AdversarialCartPoleEnv(renders=args.render)
     # base_env.seed(args.seed)
     base_env.seed(100)
 
@@ -90,7 +91,7 @@ def setup_control():
     """
     Setup a normal model and environment a a control
     """
-    env = dummy(lambda: CartPoleBulletEnv(renders=args.demo_mode), seed=args.seed)
+    env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
     # env.seed(args.seed)
     env.seed(100)
     if args.log:
