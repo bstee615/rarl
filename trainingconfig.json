@@ -1,0 +1,12 @@
+[
+  {
+    "name": "rarl",
+    "params": {
+      "N_iter": 4,
+      "N_mu": 4,
+      "N_nu": 4,
+      "N_steps": 2048,
+      "N_eval_episodes": 100
+    }
+  }
+]

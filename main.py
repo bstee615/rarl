@@ -28,14 +28,28 @@ def get_args():
     arguments = parser.parse_args()
 
     assert arguments.N_steps % 2 == 0
-    # assert arguments.N_traj % arguments.N_steps == 0
-    # arguments.N_traj_over_n_steps = arguments.N_traj / arguments.N_steps
 
     arguments.pickle = f'./models/{arguments.name}'
     arguments.logs = f'./logs/{arguments.name}'
 
-    print(f'pickling to {arguments.pickle}')
-    print(f'logging to {arguments.logs}')
+    if arguments.name:
+        import json
+        all_configs = json.load(open('trainingconfig.json'))
+        for config in all_configs:
+            if config['name']:
+                params = config['params']
+                for k, v in params.items():
+                    if arguments.__getattribute__(k):
+                        print(f'config file overridden arguments[{k}] = {v}')
+                    else:
+                        print(f'config file set arguments[{k}] = {v}')
+                        arguments.__setattr__(k, v)
+
+    print(f'pickle path {arguments.pickle}')
+    print(f'log path {arguments.logs}')
+    print(f'arguments: {arguments}')
+
+    assert arguments.N_steps % 2 == 0
 
     return arguments
 
