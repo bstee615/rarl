@@ -13,14 +13,14 @@ from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--N_steps', type=int, default=64)
-    parser.add_argument('--N_iter', type=int, default=10)
-    parser.add_argument('--N_mu', type=int, default=2)
-    parser.add_argument('--N_nu', type=int, default=2)
-    parser.add_argument('--N_traj', type=int, default=128)
+    parser.add_argument('--N_steps', type=int, default=None)  # Number of steps in a rolloout, N_traj in Algorithm 1
+    parser.add_argument('--N_iter', type=int, default=None)
+    parser.add_argument('--N_mu', type=int, default=None)
+    parser.add_argument('--N_nu', type=int, default=None)
+    parser.add_argument('--N_eval_episodes', type=int, default=None)
     parser.add_argument('--seed', type=int, default=None)
-    parser.add_argument('--demo', dest='demo_mode', action='store_true')
-    parser.add_argument('--name', type=str, default='rarl-temp')
+    parser.add_argument('--evaluate', action='store_true')
+    parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--log', action='store_true')
     parser.add_argument('--control', action='store_true')
