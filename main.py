@@ -22,6 +22,7 @@ def get_args():
     parser.add_argument('--demo', dest='demo_mode', action='store_true')
     parser.add_argument('--name', type=str, default='rarl-temp')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--log', action='store_true')
     parser.add_argument('--control', action='store_true')
     arguments = parser.parse_args()
 
@@ -69,8 +70,14 @@ def setup_adv():
     adv_env.seed(100)
 
     # Set up agents
-    prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_prot')
-    adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_adv')
+    if args.log:
+        prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
+                         tensorboard_log=f'{args.logs}_prot', n_steps=args.N_steps)
+        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
+                        tensorboard_log=f'{args.logs}_adv', n_steps=args.N_steps)
+    else:
+        prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed, n_steps=args.N_steps)
+        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed, n_steps=args.N_steps)
 
     # Link agents
     bridge.link_agents(prot_agent, adv_agent)
@@ -86,7 +93,12 @@ def setup_control():
     env = dummy(lambda: CartPoleBulletEnv(renders=args.demo_mode), seed=args.seed)
     # env.seed(args.seed)
     env.seed(100)
-    model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_control')
+    if args.log:
+        model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_control',
+                    n_steps=args.N_steps)
+    else:
+        model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
+                    n_steps=args.N_steps)
     return model, env
 
 
