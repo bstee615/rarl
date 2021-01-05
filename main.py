@@ -102,52 +102,59 @@ def setup_control():
     return model, env
 
 
-def train(prot, adv):
-    """
-    Train according to Algorithm 1
-    """
-    reset_prot = True
-    reset_adv = True
-    for i in range(args.N_iter):
-        for j in range(args.N_mu):
-            # rollout N_traj timesteps training the protagonist
-            prot.learn(total_timesteps=args.N_traj, reset_num_timesteps=reset_prot)
-            reset_prot = False
-        for j in range(args.N_nu):
-            # rollout N_traj timesteps training the adversary
-            adv.learn(total_timesteps=args.N_traj, reset_num_timesteps=reset_adv)
-            reset_adv = False
-    prot.save(f'{args.pickle}_prot')
-    adv.save(f'{args.pickle}_adv')
-    del prot
+def run_one(env, model):
+    obs = env.reset()
+    cum_reward = 0
+    for ts in range(10000):
+        if args.evaluate:
+            env.render()
+        action, _ = model.predict(obs, deterministic=args.seed is not None)
+        obs, reward, done, info = env.step(action)
+        cum_reward += reward[0]
+        if done:
+            # print(f"Episode finished. {ts=}")
+            break
+    return cum_reward
 
 
-def run(env):
+def run(env, model):
     """
     Run model in env
     """
-    model = PPO.load(f'{args.pickle}_prot')
-    obs = env.reset()
-    for ts in range(10000):
-        if args.demo_mode:
-            env.render()
-        action, _ = model.predict(obs, deterministic=args.seed is not None)
-        obs, reward, done, info = env.step(action)  # take a random action
-        if done:
-            print(f"Episode finished. {ts=}")
-            break
+    ep_rewards = []
+    for i in range(args.N_eval_episodes):
+        ep_reward = run_one(env, model)
+        # print(i, "reward", ep_reward)
+        ep_rewards.append(ep_reward)
+    avg_reward = sum(ew for ew in ep_rewards) / len(ep_rewards)
+    print("average reward over", args.N_eval_episodes, "episodes:", avg_reward)
 
 
 def main():
     if args.control:
-        model, _ = setup_control()
-        model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_traj)
-        model.save(f'{args.pickle}_control')
+        model, env = setup_control()
+        if args.evaluate:
+            model = PPO.load(f'{args.pickle}_control')
+            run(model, env)
+        else:
+            model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_steps)
+            model.save(f'{args.pickle}_control')
     else:
         prot, adv, env = setup_adv()
-        if not args.demo_mode:
-            train(prot, adv)
-        run(env)
+        if args.evaluate:
+            model = PPO.load(f'{args.pickle}_prot')
+            run(env, model)
+        else:
+            """
+            Train according to Algorithm 1
+            """
+            for i in range(args.N_iter):
+                # Do N_mu rollouts training the protagonist
+                prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=False)
+                # Do N_nu rollouts training the adversary
+                adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=False)
+            prot.save(f'{args.pickle}_prot')
+            adv.save(f'{args.pickle}_adv')
         env.close()
 
 
