@@ -131,7 +131,7 @@ def main():
     if args.control:
         model, env = setup_control()
         if args.evaluate:
-            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes, deterministic=True)
+            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes)
             print(f'{avg_reward=}')
         else:
             model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_steps)
@@ -140,7 +140,7 @@ def main():
     else:
         prot, adv, prot_env, adv_env = setup_adv()
         if args.evaluate:
-            avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes, deterministic=True)
+            avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
             print(f'{avg_reward=}')
         else:
             """
