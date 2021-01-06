@@ -82,47 +82,48 @@ def setup_adv():
     Setup models and env for adversarial training
     """
     base_env = AdversarialCartPoleEnv(renders=args.render)
-    # base_env.seed(args.seed)
-    base_env.seed(100)
+    if args.seed:
+        base_env.seed(args.seed)
+
+    if args.evaluate:
+        prot_agent = PPO.load(f'{args.pickle}_prot')
+        adv_agent = PPO.load(f'{args.pickle}_prot')
+        if prot_agent.seed != args.seed:
+            print(f'warning: {prot_agent.seed=} does not match {args.seed=}')
+        if adv_agent.seed != args.seed:
+            print(f'warning: {adv_agent.seed=} does not match {args.seed=}')
 
     bridge = Bridge()
     main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
     adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
-    # main_env.seed(args.seed)
-    # adv_env.seed(args.seed)
-    main_env.seed(100)
-    adv_env.seed(100)
 
     # Set up agents
-    if args.log:
+    if not args.evaluate:
         prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
-                         tensorboard_log=f'{args.logs}_prot', n_steps=args.N_steps)
+                         tensorboard_log=f'{args.logs}_prot' if args.logs else None, n_steps=args.N_steps)
         adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
-                        tensorboard_log=f'{args.logs}_adv', n_steps=args.N_steps)
-    else:
-        prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed, n_steps=args.N_steps)
-        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed, n_steps=args.N_steps)
+                        tensorboard_log=f'{args.logs}_adv' if args.logs else None, n_steps=args.N_steps)
 
     # Link agents
     bridge.link_agents(prot_agent, adv_agent)
 
-    env = main_env
-    return prot_agent, adv_agent, env
+    return prot_agent, adv_agent, main_env, adv_env
 
 
 def setup_control():
     """
     Setup a normal model and environment a a control
     """
+    if args.evaluate:
+        model = PPO.load(f'{args.pickle}_control')
+        if model.seed != args.seed:
+            print(f'warning: {model.seed=} does not match {args.seed=}')
+
     env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
-    # env.seed(args.seed)
-    env.seed(100)
-    if args.log:
-        model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed, tensorboard_log=f'{args.logs}_control',
-                    n_steps=args.N_steps)
-    else:
+
+    if not args.evaluate:
         model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
-                    n_steps=args.N_steps)
+                    tensorboard_log=f'{args.logs}_control' if args.logs else None, n_steps=args.N_steps)
     return model, env
 
 
@@ -130,17 +131,16 @@ def main():
     if args.control:
         model, env = setup_control()
         if args.evaluate:
-            model = PPO.load(f'{args.pickle}_control')
-            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes)
+            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes, deterministic=True)
             print(f'{avg_reward=}')
         else:
             model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_steps)
             model.save(f'{args.pickle}_control')
+        env.close()
     else:
-        prot, adv, env = setup_adv()
+        prot, adv, prot_env, adv_env = setup_adv()
         if args.evaluate:
-            model = PPO.load(f'{args.pickle}_prot')
-            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes)
+            avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes, deterministic=True)
             print(f'{avg_reward=}')
         else:
             """
@@ -153,7 +153,8 @@ def main():
                 adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=False)
             prot.save(f'{args.pickle}_prot')
             adv.save(f'{args.pickle}_adv')
-        env.close()
+        prot_env.close()
+        adv_env.close()
 
 
 if __name__ == '__main__':
