@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from pybullet_envs.bullet import CartPoleBulletEnv
 from stable_baselines3 import PPO
@@ -28,14 +29,21 @@ def get_args():
     parser.add_argument('--render', action='store_true')
     arguments = parser.parse_args()
 
-    arguments.pickle = f'./models/{arguments.name}'
     arguments.logs = f'./logs/{arguments.name}'
 
+    all_configs = json.load(open('trainingconfig.json'))
+    assert not any('_' in config['name'] for config in all_configs)
+    assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
+
     if arguments.name:
-        import json
-        all_configs = json.load(open('trainingconfig.json'))
+        arguments.config_name = arguments.name
+        if '_' in arguments.name:
+            fields = arguments.name.split('_')
+            assert len(fields) == 2
+            arguments.config_name = fields[0]
+            arguments.version = fields[1]
         for config in all_configs:
-            if config['name']:
+            if config['name'] == arguments.config_name:
                 params = config['params']
                 for k, v in params.items():
                     if arguments.__getattribute__(k):
@@ -43,11 +51,11 @@ def get_args():
                     else:
                         print(f'config file set arguments[{k}] = {v}')
                         arguments.__setattr__(k, v)
+                break
+        arguments.pickle = f'./models/{arguments.config_name}'
 
     assert arguments.N_steps % 2 == 0
 
-    print(f'pickle path {arguments.pickle}')
-    print(f'log path {arguments.logs}')
     print(f'arguments: {arguments}')
 
     assert arguments.N_steps % 2 == 0
