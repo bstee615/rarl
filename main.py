@@ -27,6 +27,7 @@ def get_args():
     parser.add_argument('--log', action='store_true')
     parser.add_argument('--control', action='store_true')
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--force_adv', type=int, default=None)
     arguments = parser.parse_args()
 
     arguments.logs = f'./logs/{arguments.name}'
@@ -34,6 +35,10 @@ def get_args():
     all_configs = json.load(open('trainingconfig.json'))
     assert not any('_' in config['name'] for config in all_configs)
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
+
+    arguments.use_adv_env = not arguments.control
+    if arguments.force_adv is not None:
+        arguments.use_adv_env = arguments.force_adv == 1
 
     if arguments.name:
         arguments.config_name = arguments.name
@@ -63,9 +68,6 @@ def get_args():
     return arguments
 
 
-args = get_args()
-
-
 def dummy(env_constructor, seed):
     """
     Set up a dummy environment wrapper for Stable Baselines
@@ -85,27 +87,37 @@ def setup_adv():
     if args.seed:
         base_env.seed(args.seed)
 
+    bridge = Bridge()
+    if args.use_adv_env:
+        main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
+        adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
+    else:
+        main_env = adv_env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
+        base_env.close()
+        del base_env
+        del bridge
+
+    # Set up agents
     if args.evaluate:
         prot_agent = PPO.load(f'{args.pickle}_prot')
         adv_agent = PPO.load(f'{args.pickle}_prot')
+
         if prot_agent.seed != args.seed:
             print(f'warning: {prot_agent.seed=} does not match {args.seed=}')
         if adv_agent.seed != args.seed:
             print(f'warning: {adv_agent.seed=} does not match {args.seed=}')
 
-    bridge = Bridge()
-    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
-    adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
-
-    # Set up agents
-    if not args.evaluate:
+        prot_agent.set_env(main_env)
+        adv_agent.set_env(adv_env)
+    else:
         prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
                          tensorboard_log=f'{args.logs}_prot' if args.logs else None, n_steps=args.N_steps)
         adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
                         tensorboard_log=f'{args.logs}_adv' if args.logs else None, n_steps=args.N_steps)
 
     # Link agents
-    bridge.link_agents(prot_agent, adv_agent)
+    if args.use_adv_env:
+        bridge.link_agents(prot_agent, adv_agent)
 
     return prot_agent, adv_agent, main_env, adv_env
 
@@ -114,17 +126,37 @@ def setup_control():
     """
     Setup a normal model and environment a a control
     """
+
+    if args.use_adv_env:
+        base_env = AdversarialCartPoleEnv(renders=args.render)
+        if args.seed:
+            base_env.seed(args.seed)
+        bridge = Bridge()
+        env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
+        adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
+
+        # Set up agents
+        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
+                        tensorboard_log=f'{args.logs}_adv' if args.logs else None, n_steps=args.N_steps)
+    else:
+        env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
+
     if args.evaluate:
         model = PPO.load(f'{args.pickle}_control')
+        model.set_env(env)
         if model.seed != args.seed:
             print(f'warning: {model.seed=} does not match {args.seed=}')
-
-    env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
-
-    if not args.evaluate:
+    else:
         model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
                     tensorboard_log=f'{args.logs}_control' if args.logs else None, n_steps=args.N_steps)
+
+    if args.use_adv_env:
+        bridge.link_agents(model, adv_agent)
+
     return model, env
+
+
+args = get_args()
 
 
 def main():
