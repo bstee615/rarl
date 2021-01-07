@@ -21,5 +21,18 @@
       "verbose": true,
       "seed": 12345
     }
+  },
+  {
+    "name": "original-lerrel",
+    "params": {
+      "N_iter": 500,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 25000,
+      "N_eval_episodes": 100,
+      "log": true,
+      "verbose": true,
+      "seed": 12345
+    }
   }
 ]
