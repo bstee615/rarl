@@ -11,6 +11,13 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     Wraps CartPole env and allows two actors to act in each step.
     """
 
+    def __init__(self, *args, **kwargs):
+        self.apply_adv = kwargs.pop('apply_adv', True)
+        self.apply_prot = kwargs.pop('apply_prot', True)
+        CartPoleBulletEnv.__init__(self, *args, **kwargs)
+
+        self.adv_force_mag = self.force_mag
+
     def get_ob(self):
         return np.array(self.state)
 
@@ -22,15 +29,17 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         p = self._p
         if self._discrete_actions:
             force = self.force_mag if action == 1 else -self.force_mag
-            adv_force = (5, 0, 0) if adv_action == 1 else (
-                -5, 0, 0) if adv_action == -1 else (0, 0, 0)
+            adv_force = self.adv_force_mag if adv_action == 1 else -self.adv_force_mag
         else:
             raise Exception('benjis: continuous action space not supported')
-            # force = action[0]
+            force = action[0]
 
-        p.applyExternalForce(self.cartpole, 1, forceObj=adv_force, posObj=(0, 0, 0), flags=p.WORLD_FRAME)
+        if self.apply_adv:
+            p.applyExternalForce(self.cartpole, 1, forceObj=(adv_force, 0, 0), posObj=(0, 0, 0), flags=p.WORLD_FRAME)
 
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=force)
+        if self.apply_prot:
+            p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=force)
+
         p.stepSimulation()
 
         self.state = p.getJointState(self.cartpole, 1)[0:2] + p.getJointState(self.cartpole, 0)[0:2]
