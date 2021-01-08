@@ -1,7 +1,11 @@
+import argparse
+import json
+
 from pybullet_envs.bullet import CartPoleBulletEnv
 from stable_baselines3 import PPO
 # Set up environments
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
@@ -9,59 +13,181 @@ from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
 
 
-def dummy(env_type, seed):
-    env = make_vec_env(env_type, seed=seed)
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--N_steps', type=int, default=None)  # Number of steps in a rolloout, N_traj in Algorithm 1
+    parser.add_argument('--N_iter', type=int, default=None)
+    parser.add_argument('--N_mu', type=int, default=None)
+    parser.add_argument('--N_nu', type=int, default=None)
+    parser.add_argument('--N_eval_episodes', type=int, default=None)
+    parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--evaluate', action='store_true')
+    parser.add_argument('--name', type=str, default=None)
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--log', action='store_true')
+    parser.add_argument('--control', action='store_true')
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--force_adv', type=int, default=None)
+    arguments = parser.parse_args()
+
+    arguments.logs = f'./logs/{arguments.name}'
+
+    all_configs = json.load(open('trainingconfig.json'))
+    assert not any('_' in config['name'] for config in all_configs)
+    assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
+
+    arguments.use_adv_env = not arguments.control
+    if arguments.force_adv is not None:
+        arguments.use_adv_env = arguments.force_adv == 1
+
+    if arguments.name:
+        arguments.config_name = arguments.name
+        if '_' in arguments.name:
+            fields = arguments.name.split('_')
+            assert len(fields) == 2
+            arguments.config_name = fields[0]
+            arguments.version = fields[1]
+        for config in all_configs:
+            if config['name'] == arguments.config_name:
+                params = config['params']
+                for k, v in params.items():
+                    if arguments.__getattribute__(k):
+                        print(f'config file overridden arguments[{k}] = {v}')
+                    else:
+                        print(f'config file set arguments[{k}] = {v}')
+                        arguments.__setattr__(k, v)
+                break
+        arguments.pickle = f'./models/{arguments.config_name}'
+
+    assert arguments.N_steps % 2 == 0
+
+    print(f'arguments: {arguments}')
+
+    assert arguments.N_steps % 2 == 0
+
+    return arguments
+
+
+def dummy(env_constructor, seed):
+    """
+    Set up a dummy environment wrapper for Stable Baselines
+    """
+    env = make_vec_env(env_constructor, seed=seed)
     # Automatically normalize the input features and reward
     env = VecNormalize(env, norm_obs=True, norm_reward=True,
                        clip_obs=10.)
     return env
 
 
-def adversarial_setup():
-    base_env = AdversarialCartPoleEnv(renders=True)
-    base_env.seed(100)
+def setup_adv():
+    """
+    Setup models and env for adversarial training
+    """
+    base_env = AdversarialCartPoleEnv(renders=args.render)
+    if args.seed:
+        base_env.seed(args.seed)
 
     bridge = Bridge()
-    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=100)
-    adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=100)
-    main_env.seed(100)
-    adv_env.seed(100)
+    if args.use_adv_env:
+        main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
+        adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
+    else:
+        main_env = adv_env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
+        base_env.close()
+        del base_env
+        del bridge
 
     # Set up agents
-    main_agent = PPO("MlpPolicy", main_env, verbose=True, seed=123456)
-    adv_agent = PPO("MlpPolicy", adv_env, verbose=True, seed=123456)
+    if args.evaluate:
+        prot_agent = PPO.load(f'{args.pickle}_prot')
+        adv_agent = PPO.load(f'{args.pickle}_prot')
+
+        if prot_agent.seed != args.seed:
+            print(f'warning: {prot_agent.seed=} does not match {args.seed=}')
+        if adv_agent.seed != args.seed:
+            print(f'warning: {adv_agent.seed=} does not match {args.seed=}')
+
+        prot_agent.set_env(main_env)
+        adv_agent.set_env(adv_env)
+    else:
+        prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
+                         tensorboard_log=f'{args.logs}_prot' if args.logs else None, n_steps=args.N_steps)
+        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
+                        tensorboard_log=f'{args.logs}_adv' if args.logs else None, n_steps=args.N_steps)
 
     # Link agents
-    bridge.link_agents(main_agent, adv_agent)
+    if args.use_adv_env:
+        bridge.link_agents(prot_agent, adv_agent)
 
-    env = main_env
-    model = main_agent
+    return prot_agent, adv_agent, main_env, adv_env
+
+
+def setup_control():
+    """
+    Setup a normal model and environment a a control
+    """
+
+    if args.use_adv_env:
+        base_env = AdversarialCartPoleEnv(renders=args.render)
+        if args.seed:
+            base_env.seed(args.seed)
+        bridge = Bridge()
+        env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed)
+        adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed)
+
+        # Set up agents
+        adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
+                        tensorboard_log=f'{args.logs}_adv' if args.logs else None, n_steps=args.N_steps)
+    else:
+        env = dummy(lambda: CartPoleBulletEnv(renders=args.render), seed=args.seed)
+
+    if args.evaluate:
+        model = PPO.load(f'{args.pickle}_control')
+        model.set_env(env)
+        if model.seed != args.seed:
+            print(f'warning: {model.seed=} does not match {args.seed=}')
+    else:
+        model = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
+                    tensorboard_log=f'{args.logs}_control' if args.logs else None, n_steps=args.N_steps)
+
+    if args.use_adv_env:
+        bridge.link_agents(model, adv_agent)
+
     return model, env
 
 
-def control_setup():
-    env = dummy(lambda: CartPoleBulletEnv(renders=True), seed=0)
-    env.seed(0)
-    model = PPO("MlpPolicy", env, verbose=True, seed=123456)
-    return model, env
+args = get_args()
 
 
-model, env = adversarial_setup()
-# model, env = control_setup()
+def main():
+    if args.control:
+        model, env = setup_control()
+        if args.evaluate:
+            avg_reward, std_reward = evaluate_policy(model, env, args.N_eval_episodes)
+            print(f'{avg_reward=}')
+        else:
+            model.learn(total_timesteps=args.N_iter * args.N_mu * args.N_steps)
+            model.save(f'{args.pickle}_control')
+        env.close()
+    else:
+        prot, adv, prot_env, adv_env = setup_adv()
+        if args.evaluate:
+            avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
+            print(f'{avg_reward=}')
+        else:
+            """
+            Train according to Algorithm 1
+            """
+            for i in range(args.N_iter):
+                # Do N_mu rollouts training the protagonist
+                prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=False)
+                # Do N_nu rollouts training the adversary
+                adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=False)
+            prot.save(f'{args.pickle}_prot')
+            adv.save(f'{args.pickle}_adv')
+        prot_env.close()
+        adv_env.close()
 
-# %% Train the agent
-model.learn(total_timesteps=200000)
-model.save("models/ppo-cartpolebullet-200k")
-del model
 
-# %%
-model = PPO.load("models/ppo-cartpolebullet-200k")
-obs = env.reset()
-for ts in range(10000):
-    env.render()
-    action, _ = model.predict(obs, deterministic=True)
-    obs, reward, done, info = env.step(action)  # take a random action
-    if done:
-        print(f"Episode finished. {ts=}")
-        break
-env.close()
+if __name__ == '__main__':
+    main()
