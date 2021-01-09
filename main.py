@@ -26,7 +26,7 @@ def get_args():
     parser.add_argument('--log', action='store_true')
     parser.add_argument('--control', action='store_true')
     parser.add_argument('--render', action='store_true')
-    parser.add_argument('--force_adv', type=int, default=None)
+    parser.add_argument('--adv_percentage', type=float, default=None)
     arguments = parser.parse_args()
 
     arguments.logs = f'./logs/{arguments.name}'
@@ -36,10 +36,9 @@ def get_args():
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
 
     # Are we running RARL or control
-    args.rarl = not arguments.control
-    if arguments.force_adv is not None:
-        args.rarl = arguments.force_adv == 1
-    args.prot_name = 'prot' if args.use_adv_env else 'control'
+    arguments.prot_name = 'control' if arguments.control else 'prot'
+    if arguments.adv_percentage is None:
+        arguments.adv_percentage = 0.0 if arguments.control else 1.0
 
     if arguments.name:
         arguments.config_name = arguments.name
@@ -60,10 +59,9 @@ def get_args():
                 break
         arguments.pickle = f'./models/{arguments.config_name}'
 
-    assert arguments.N_steps % 2 == 0
-
     print(f'arguments: {arguments}')
 
+    assert 0.0 <= arguments.adv_percentage <= 1.0
     assert arguments.N_steps % 2 == 0
 
     return arguments
@@ -87,12 +85,12 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 
 
 def setup():
-    base_env = AdversarialCartPoleEnv(renders=args.render)
+    base_env = AdversarialCartPoleEnv(renders=args.render, adv_percentage=args.adv_percentage)
     bridge = Bridge()
 
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
     adv_envname = f'{args.pickle}_advenv' if args.evaluate else None
-    main_env = dummy(lambda: MainRarlEnv(base_env, bridge, apply_adv=args.use_adv_env), seed=args.seed,
+    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
     adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed,
                     evaluate_name=adv_envname)

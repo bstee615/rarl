@@ -12,14 +12,12 @@ class BaseRarlEnv(abc.ABC, gym.Env):
     Defines required fields from Stable Baselines v3 (https://stable-baselines.readthedocs.io/en/master/guide/custom_env.html)
     """
 
-    def __init__(self, base: BaseAdversarialEnv, bridge: Bridge, apply_adv=True, apply_prot=True):
+    def __init__(self, base: BaseAdversarialEnv, bridge: Bridge):
         super().__init__()
         self.base = base
         self.bridge = bridge
         self.action_space = self.base.action_space
         self.observation_space = self.base.observation_space
-        self.apply_adv = apply_adv
-        self.apply_prot = apply_prot
 
     @abc.abstractmethod
     def step(self, action):
@@ -42,11 +40,8 @@ class MainRarlEnv(BaseRarlEnv):
 
     def step(self, main_action):
         prestep_obs = self.base.get_ob()
-        if self.apply_adv:
-            assert self.bridge.is_linked()
-            adv_action, _ = self.bridge.adv_agent.predict(prestep_obs, deterministic=True)
-        else:
-            adv_action = None
+        assert self.bridge.is_linked()
+        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, r, d, i
 
@@ -58,11 +53,8 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
     def step(self, adv_action):
         prestep_obs = self.base.get_ob()
-        if self.apply_prot:
-            assert self.bridge.is_linked()
-            main_action, _ = self.bridge.main_agent.predict(prestep_obs, deterministic=True)
-        else:
-            main_action = None
+        assert self.bridge.is_linked()
+        main_action, _ = self.bridge.main_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
         return poststep_obs, -r, d, i
 
