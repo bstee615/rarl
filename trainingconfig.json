@@ -10,12 +10,12 @@
     }
   },
   {
-    "name": "eval-1",
+    "name": "original",
     "params": {
-      "N_iter": 10,
-      "N_mu": 10,
-      "N_nu": 10,
-      "N_steps": 2048,
+      "N_iter": 100,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 4000,
       "N_eval_episodes": 100,
       "log": true,
       "verbose": true,
@@ -23,12 +23,12 @@
     }
   },
   {
-    "name": "original-lerrel",
+    "name": "colab-example",
     "params": {
-      "N_iter": 500,
+      "N_iter": 4,
       "N_mu": 1,
       "N_nu": 1,
-      "N_steps": 25000,
+      "N_steps": 2048,
       "N_eval_episodes": 100,
       "log": true,
       "verbose": true,
