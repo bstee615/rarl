@@ -4,12 +4,12 @@ from stable_baselines3 import PPO
 
 from bridge import Bridge
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.rarl_env import MainRarlEnv
+from gym_rarl.envs.rarl_env import ProtagonistRarlEnv
 from main import dummy
 
 bridge = Bridge()
 base_env = AdversarialCartPoleEnv(renders=True)
-prot_env = dummy(lambda: MainRarlEnv(base_env, bridge, apply_adv=False),
+prot_env = dummy(lambda: ProtagonistRarlEnv(base_env, bridge, apply_adv=False),
                  evaluate_name='models/colab-example_controlenv')
 # adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), evaluate_name='control')
 

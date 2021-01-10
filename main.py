@@ -9,7 +9,7 @@ from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.rarl_env import MainRarlEnv, AdversarialRarlEnv
+from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 
 def get_args():
@@ -103,7 +103,7 @@ def setup():
                                          adv_percentage=args.adv_percentage)
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
     adv_envname = f'{args.pickle}_{args.adv_name}env' if args.evaluate else None
-    main_env = dummy(lambda: MainRarlEnv(base_protenv, bridge), seed=args.seed,
+    prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
     adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
                     evaluate_name=adv_envname)
@@ -117,19 +117,19 @@ def setup():
         if adv_agent.seed != args.seed:
             print(f'warning: {adv_agent.seed=} does not match {args.seed=}')
 
-        prot_agent.set_env(main_env)
+        prot_agent.set_env(prot_env)
         adv_agent.set_env(adv_env)
     else:
         prot_logname = f'{args.logs}_{args.prot_name}' if args.logs else None
         adv_logname = f'{args.logs}_{args.adv_name}' if args.logs else None
-        prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
+        prot_agent = PPO("MlpPolicy", prot_env, verbose=args.verbose, seed=args.seed,
                          tensorboard_log=prot_logname, n_steps=args.N_steps)
         adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
                         tensorboard_log=adv_logname, n_steps=args.N_steps)
 
     bridge.link_agents(prot_agent, adv_agent)
 
-    return prot_agent, adv_agent, main_env, adv_env
+    return prot_agent, adv_agent, prot_env, adv_env
 
 
 args = get_args()

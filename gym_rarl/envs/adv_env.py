@@ -14,7 +14,7 @@ class BaseAdversarialEnv(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def step_two_agents(self, main_action, adv_action):
+    def step_two_agents(self, prot_action, adv_action):
         """
         Step the environment with an action from each agent.
         """
