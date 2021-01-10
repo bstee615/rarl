@@ -27,6 +27,8 @@ def get_args():
     parser.add_argument('--control', action='store_true')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--adv_percentage', type=float, default=None)
+    parser.add_argument("--force-adversarial", action='store_true')
+    parser.add_argument("--force-no-adversarial", action='store_true')
     arguments = parser.parse_args()
 
     arguments.logs = f'./logs/{arguments.name}'
@@ -36,9 +38,16 @@ def get_args():
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
 
     # Are we running RARL or control
-    arguments.prot_name = 'control' if arguments.control else 'prot'
     if arguments.adv_percentage is None:
-        arguments.adv_percentage = 0.0 if arguments.control else 1.0
+        arguments.adv_percentage = 1.0
+    if arguments.control:
+        arguments.prot_name = 'control'
+        arguments.adv_name = 'adv_control'
+        arguments.adversarial = arguments.force_adversarial
+    else:
+        arguments.prot_name = 'prot'
+        arguments.adv_name = 'adv'
+        arguments.adversarial = not arguments.force_no_adversarial
 
     if arguments.name:
         arguments.config_name = arguments.name
@@ -57,12 +66,13 @@ def get_args():
                         print(f'config file set arguments[{k}] = {v}')
                         arguments.__setattr__(k, v)
                 break
-        arguments.pickle = f'./models/{arguments.config_name}'
+        arguments.pickle = f'./models/{arguments.name}'
 
     print(f'arguments: {arguments}')
 
     assert 0.0 <= arguments.adv_percentage <= 1.0
     assert arguments.N_steps % 2 == 0
+    assert not (arguments.force_adversarial and arguments.force_no_adversarial)
 
     return arguments
 
@@ -85,19 +95,22 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 
 
 def setup():
-    base_env = AdversarialCartPoleEnv(renders=args.render, adv_percentage=args.adv_percentage)
     bridge = Bridge()
 
+    base_protenv = AdversarialCartPoleEnv(renders=args.render,
+                                          adv_percentage=args.adv_percentage if args.adversarial else 0.0)
+    base_advenv = AdversarialCartPoleEnv(renders=args.render,
+                                         adv_percentage=args.adv_percentage)
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
-    adv_envname = f'{args.pickle}_advenv' if args.evaluate else None
-    main_env = dummy(lambda: MainRarlEnv(base_env, bridge), seed=args.seed,
+    adv_envname = f'{args.pickle}_{args.adv_name}env' if args.evaluate else None
+    main_env = dummy(lambda: MainRarlEnv(base_protenv, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
-    adv_env = dummy(lambda: AdversarialRarlEnv(base_env, bridge), seed=args.seed,
+    adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
                     evaluate_name=adv_envname)
 
     if args.evaluate:
         prot_agent = PPO.load(f'{args.pickle}_{args.prot_name}')
-        adv_agent = PPO.load(f'{args.pickle}_adv')
+        adv_agent = PPO.load(f'{args.pickle}_{args.adv_name}')
 
         if prot_agent.seed != args.seed:
             print(f'warning: {prot_agent.seed=} does not match {args.seed=}')
@@ -108,7 +121,7 @@ def setup():
         adv_agent.set_env(adv_env)
     else:
         prot_logname = f'{args.logs}_{args.prot_name}' if args.logs else None
-        adv_logname = f'{args.logs}_adv' if args.logs else None
+        adv_logname = f'{args.logs}_{args.adv_name}' if args.logs else None
         prot_agent = PPO("MlpPolicy", main_env, verbose=args.verbose, seed=args.seed,
                          tensorboard_log=prot_logname, n_steps=args.N_steps)
         adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
@@ -138,8 +151,8 @@ def main():
         prot.save(f'{args.pickle}_{args.prot_name}')
         prot_env.save(f'{args.pickle}_{args.prot_name}env')
 
-        adv.save(f'{args.pickle}_adv')
-        adv_env.save(f'{args.pickle}_advenv')
+        adv.save(f'{args.pickle}_{args.adv_name}')
+        adv_env.save(f'{args.pickle}_{args.adv_name}env')
 
     prot_env.training = False
     prot_env.norm_reward = False
