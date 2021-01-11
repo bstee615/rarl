@@ -14,9 +14,3 @@ class Bridge:
         """
         self.prot_agent = prot_agent
         self.adv_agent = adv_agent
-
-    def is_linked(self):
-        """
-        Returns whether this environment is linked to both the main and adversarial agent
-        """
-        return self.adv_agent is not None and self.prot_agent is not None

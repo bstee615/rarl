@@ -40,8 +40,11 @@ class ProtagonistRarlEnv(BaseRarlEnv):
 
     def step(self, prot_action):
         prestep_obs = self.base.get_ob()
-        assert self.bridge.is_linked()
-        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
+        # assert self.bridge.is_linked()
+        if self.bridge.adv_agent:
+            adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
+        else:
+            adv_action = None
         poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, r, d, i
 
@@ -53,7 +56,7 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
     def step(self, adv_action):
         prestep_obs = self.base.get_ob()
-        assert self.bridge.is_linked()
+        assert self.self.bridge.prot_agent is not None
         prot_action, _ = self.bridge.prot_agent.predict(prestep_obs)
         poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, -r, d, i
