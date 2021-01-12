@@ -37,18 +37,6 @@ def get_args():
     assert not any('_' in config['name'] for config in all_configs)
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
 
-    # Are we running RARL or control
-    if arguments.adv_percentage is None:
-        arguments.adv_percentage = 1.0
-
-    if arguments.control:
-        arguments.prot_name = 'control'
-        arguments.adversarial = arguments.force_adversarial
-    else:
-        arguments.prot_name = 'prot'
-        arguments.adversarial = not arguments.force_no_adversarial
-    arguments.adv_name = 'adv'
-
     if arguments.name:
         arguments.config_name = arguments.name
         if '_' in arguments.name:
@@ -67,6 +55,18 @@ def get_args():
                         arguments.__setattr__(k, v)
                 break
         arguments.pickle = f'./models/{arguments.name}'
+
+    # Are we running RARL or control
+    if arguments.adv_percentage is None:
+        arguments.adv_percentage = 1.0
+
+    if arguments.control:
+        arguments.prot_name = 'control'
+        arguments.adversarial = arguments.force_adversarial
+    else:
+        arguments.prot_name = 'prot'
+        arguments.adversarial = not arguments.force_no_adversarial
+    arguments.adv_name = 'adv'
 
     print(f'arguments: {arguments}')
 
