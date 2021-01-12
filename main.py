@@ -148,7 +148,12 @@ args = get_args()
 def main():
     prot, adv, prot_env, adv_env = setup()
 
-    if not args.evaluate:
+    if args.evaluate:
+        prot_env.training = False
+        prot_env.norm_reward = False
+        avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
+        print(f'{avg_reward=}')
+    else:
         # Train
         """
         Train according to Algorithm 1
@@ -167,11 +172,6 @@ def main():
             adv.save(f'{args.pickle}_{args.adv_name}')
         if adv_env is not None:
             adv_env.save(f'{args.pickle}_{args.adv_name}env')
-
-    prot_env.training = False
-    prot_env.norm_reward = False
-    avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
-    print(f'{avg_reward=}')
 
     prot_env.close()
     if adv_env is not None:
