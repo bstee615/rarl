@@ -23,6 +23,9 @@ class BaseRarlEnv(abc.ABC, gym.Env):
     def step(self, action):
         pass
 
+    def seed(self, seed=None):
+        self.base.seed(seed)
+
     def reset(self):
         return self.base.reset()
 
@@ -45,6 +48,7 @@ class ProtagonistRarlEnv(BaseRarlEnv):
             adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
         else:
             adv_action = None
+        # print(prot_action, adv_action)
         poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, r, d, i
 

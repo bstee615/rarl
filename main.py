@@ -89,7 +89,8 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
         env.norm_reward = False
     else:
         env = VecNormalize(env, norm_obs=True, norm_reward=True,
-                           clip_obs=10.)
+                           clip_obs=10., seed=seed)
+    env.seed(seed)
 
     return env
 
@@ -152,7 +153,7 @@ def main():
         prot_env.training = False
         prot_env.norm_reward = False
         avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
-        print(f'{avg_reward=}')
+        print(f'{avg_reward=} {std_reward=}')
     else:
         # Train
         """
