@@ -3,3 +3,6 @@
 __pycache__
 /data
 /logs
+*.gif
+*.tar
+*.tar.gz
