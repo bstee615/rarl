@@ -60,8 +60,10 @@ class AdversarialRarlEnv(BaseRarlEnv):
 
     def step(self, adv_action):
         prestep_obs = self.base.get_ob()
-        assert self.self.bridge.prot_agent is not None
-        prot_action, _ = self.bridge.prot_agent.predict(prestep_obs)
+        if self.bridge.prot_agent:
+            prot_action, _ = self.bridge.prot_agent.predict(prestep_obs)
+        else:
+            prot_action = None
         poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, -r, d, i
 
