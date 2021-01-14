@@ -14,7 +14,7 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     def __init__(self, adv_percentage, **kwargs):
         CartPoleBulletEnv.__init__(self, **kwargs)
 
-        self.adv_force_mag = self.force_mag * adv_percentage
+        self.adv_force_mag = 0.05 * adv_percentage  # TODO tune this parameter
 
     def get_ob(self):
         return np.array(self.state)
@@ -33,7 +33,8 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
             force = action[0]
 
         if adv_action is not None:
-            p.applyExternalForce(self.cartpole, 1, forceObj=(adv_force, 0, 0), posObj=(0, 0, 0), flags=p.WORLD_FRAME)
+            p.applyExternalForce(self.cartpole, 1, forceObj=(adv_force, 0.0, 0.0), posObj=(0.0, 0.0, 0.0),
+                                 flags=p.LINK_FRAME)
 
         if action is not None:
             p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=force)
