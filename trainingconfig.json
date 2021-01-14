@@ -18,7 +18,20 @@
       "N_nu": 1,
       "N_steps": 4000,
       "N_eval_episodes": 100,
-      "seed": 12345
+      "seed": 12345,
+      "adv_percentage": 0.25
+    }
+  },
+  {
+    "name": "original-reduced",
+    "params": {
+      "N_iter": 5,
+      "N_mu": 5,
+      "N_nu": 5,
+      "N_steps": 2048,
+      "N_eval_episodes": 100,
+      "seed": 12345,
+      "adv_percentage": 0.25
     }
   }
 ]
