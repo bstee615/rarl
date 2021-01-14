@@ -70,8 +70,8 @@ def get_args():
 
     print(f'arguments: {arguments}')
 
-    assert 0.0 <= arguments.adv_percentage <= 1.0
-    assert arguments.N_steps % 2 == 0
+    if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage <= 1.0
+    if arguments.N_steps: assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
 
     return arguments
@@ -89,8 +89,9 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
         env.norm_reward = False
     else:
         env = VecNormalize(env, norm_obs=True, norm_reward=True,
-                           clip_obs=10., seed=seed)
-    env.seed(seed)
+                           clip_obs=10.)
+    if seed:
+        env.seed(seed)
 
     return env
 
