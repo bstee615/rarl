@@ -38,6 +38,7 @@ def get_args():
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
 
     if arguments.name:
+        found = False
         arguments.config_name = arguments.name
         if '_' in arguments.name:
             fields = arguments.name.split('_')
@@ -53,9 +54,10 @@ def get_args():
                     else:
                         print(f'config file set arguments[{k}] = {v}')
                         arguments.__setattr__(k, v)
+                found = True
                 break
         arguments.pickle = f'./models/{arguments.name}'
-
+        assert found
     # Are we running RARL or control
     if arguments.adv_percentage is None:
         arguments.adv_percentage = 1.0
