@@ -1,6 +1,8 @@
 import argparse
 import json
+import sys
 
+import numpy as np
 from stable_baselines3 import PPO
 # Set up environments
 from stable_baselines3.common.env_util import make_vec_env
@@ -12,7 +14,7 @@ from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 
-def get_args():
+def get_args(cmd_args=sys.argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--N_steps', type=int, default=None)  # Number of steps in a rolloout, N_traj in Algorithm 1
     parser.add_argument('--N_iter', type=int, default=None)
@@ -29,7 +31,7 @@ def get_args():
     parser.add_argument('--adv_percentage', type=float, default=None)
     parser.add_argument("--force-adversarial", action='store_true')
     parser.add_argument("--force-no-adversarial", action='store_true')
-    arguments = parser.parse_args()
+    arguments = parser.parse_args(cmd_args)
 
     arguments.logs = f'./logs/{arguments.name}'
 
@@ -49,7 +51,7 @@ def get_args():
             if config['name'] == arguments.config_name:
                 params = config['params']
                 for k, v in params.items():
-                    if arguments.__getattribute__(k):
+                    if arguments.__getattribute__(k) is not None:
                         print(f'config file overridden arguments[{k}] = {v}')
                     else:
                         print(f'config file set arguments[{k}] = {v}')
@@ -72,7 +74,7 @@ def get_args():
 
     print(f'arguments: {arguments}')
 
-    if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage <= 1.0
+    if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage
     if arguments.N_steps: assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
 
@@ -146,41 +148,47 @@ def setup():
     return prot_agent, adv_agent, prot_env, adv_env
 
 
-args = get_args()
+args = None
 
 
-def main():
+def run(arguments):
+    global args
+    args = arguments
     prot, adv, prot_env, adv_env = setup()
+    try:
+        if args.evaluate:
+            prot_env.training = False
+            prot_env.norm_reward = False
+            reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes, max_episode_length=1000,
+                                              return_episode_rewards=True)
+            avg_reward = np.mean(reward)
+            std_reward = np.std(reward)
+            print(f'reward={avg_reward}+={std_reward}')
+            return avg_reward, std_reward
+        else:
+            # Train
+            """
+            Train according to Algorithm 1
+            """
+            for i in range(args.N_iter):
+                # Do N_mu rollouts training the protagonist
+                prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=i == 0)
+                # Do N_nu rollouts training the adversary
+                if adv is not None:
+                    adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=i == 0)
 
-    if args.evaluate:
-        prot_env.training = False
-        prot_env.norm_reward = False
-        avg_reward, std_reward = evaluate_policy(prot, prot_env, args.N_eval_episodes)
-        print(f'{avg_reward=} {std_reward=}')
-    else:
-        # Train
-        """
-        Train according to Algorithm 1
-        """
-        for i in range(args.N_iter):
-            # Do N_mu rollouts training the protagonist
-            prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=i == 0)
-            # Do N_nu rollouts training the adversary
+            prot.save(f'{args.pickle}_{args.prot_name}')
+            prot_env.save(f'{args.pickle}_{args.prot_name}env')
+
             if adv is not None:
-                adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=i == 0)
-
-        prot.save(f'{args.pickle}_{args.prot_name}')
-        prot_env.save(f'{args.pickle}_{args.prot_name}env')
-
-        if adv is not None:
-            adv.save(f'{args.pickle}_{args.adv_name}')
+                adv.save(f'{args.pickle}_{args.adv_name}')
+            if adv_env is not None:
+                adv_env.save(f'{args.pickle}_{args.adv_name}env')
+    finally:
+        prot_env.close()
         if adv_env is not None:
-            adv_env.save(f'{args.pickle}_{args.adv_name}env')
-
-    prot_env.close()
-    if adv_env is not None:
-        adv_env.close()
+            adv_env.close()
 
 
 if __name__ == '__main__':
-    main()
+    run(get_args())
