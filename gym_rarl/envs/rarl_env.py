@@ -23,6 +23,9 @@ class BaseRarlEnv(abc.ABC, gym.Env):
     def step(self, action):
         pass
 
+    def seed(self, seed=None):
+        self.base.seed(seed)
+
     def reset(self):
         return self.base.reset()
 
@@ -33,17 +36,20 @@ class BaseRarlEnv(abc.ABC, gym.Env):
         return self.base.close()
 
 
-class MainRarlEnv(BaseRarlEnv):
+class ProtagonistRarlEnv(BaseRarlEnv):
     """
     An environment for the main agent to act against adversarial actions.
     """
 
-    def step(self, main_action):
-        assert self.bridge.is_linked()
-
+    def step(self, prot_action):
         prestep_obs = self.base.get_ob()
-        adv_action, _ = self.bridge.adv_agent.predict(prestep_obs, deterministic=True)
-        poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
+        # assert self.bridge.is_linked()
+        if self.bridge.adv_agent:
+            adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
+        else:
+            adv_action = None
+        # print(prot_action, adv_action)
+        poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, r, d, i
 
 
@@ -53,11 +59,12 @@ class AdversarialRarlEnv(BaseRarlEnv):
     """
 
     def step(self, adv_action):
-        assert self.bridge.is_linked()
-
         prestep_obs = self.base.get_ob()
-        main_action, _ = self.bridge.main_agent.predict(prestep_obs, deterministic=True)
-        poststep_obs, r, d, i = self.base.step_two_agents(main_action, adv_action)
+        if self.bridge.prot_agent:
+            prot_action, _ = self.bridge.prot_agent.predict(prestep_obs)
+        else:
+            prot_action = None
+        poststep_obs, r, d, i = self.base.step_two_agents(prot_action, adv_action)
         return poststep_obs, -r, d, i
 
 
@@ -69,20 +76,20 @@ if __name__ == '__main__':
     base_env = AdversarialCartPoleEnv()
 
     bridge = Bridge()
-    main_env = MainRarlEnv(base_env, bridge)
+    prot_env = ProtagonistRarlEnv(base_env, bridge)
     adv_env = AdversarialRarlEnv(base_env, bridge)
 
     # Set up agents
-    main_agent = PPO("MlpPolicy", main_env, verbose=1)
+    prot_agent = PPO("MlpPolicy", prot_env, verbose=1)
     adv_agent = PPO("MlpPolicy", adv_env, verbose=1)
 
     # Link agents
-    bridge.link_agents(main_agent, adv_agent)
+    bridge.link_agents(prot_agent, adv_agent)
 
     # Main agent tries to act
-    obs = main_env.reset()
-    a, _ = main_agent.predict(obs)
-    main_env.step(a)
+    obs = prot_env.reset()
+    a, _ = prot_agent.predict(obs)
+    prot_env.step(a)
 
     # Adversarial agent tries to act
     obs = adv_env.reset()
