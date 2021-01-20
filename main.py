@@ -163,7 +163,6 @@ def run(arguments):
                                               return_episode_rewards=True)
             avg_reward = np.mean(reward)
             std_reward = np.std(reward)
-            print(f'reward={avg_reward}+={std_reward}')
             return avg_reward, std_reward
         else:
             # Train
@@ -191,4 +190,7 @@ def run(arguments):
 
 
 if __name__ == '__main__':
-    run(get_args())
+    result = run(get_args())
+    if result is not None:
+        avg_reward, std_reward = result
+        print(f'reward={avg_reward}+={std_reward}')
