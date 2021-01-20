@@ -5,13 +5,16 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-import numpy as np
-
 from main import run, get_args
 
 render = False
-args_fmt = \
-    "--name=original_{0} --seed={0} --evaluate --force-adversarial --N_eval_episodes=10 --adv_percentage={1} {2}"
+args_fmt = """
+--evaluate --force-adversarial
+--N_eval_episodes=10 --N_eval_timesteps=1000
+--name=original_{0} --seed={0}
+--adv_percentage={1}
+{2}
+"""
 
 # Run 5 seeds for 5 different adv_percentages
 hyperparameters = {
@@ -36,10 +39,7 @@ def get_avg(results, key):
     num_percentages = len(set(k["hyperparameters"]["seed"] for k in results))
     sum_reward = defaultdict(float)
     for r in results:
-        reward = r["avg_reward"]
-        if isinstance(reward, np.ndarray):
-            reward = reward[0]
-        sum_reward[r["hyperparameters"][key]] += reward
+        sum_reward[r["hyperparameters"][key]] += r["avg_reward"]
     avg_reward = {percentage: r / num_percentages for percentage, r in sum_reward.items()}
     return avg_reward
 
@@ -83,7 +83,7 @@ def main():
         })
 
         # Report results every time we've gone through all agents for all adv_percentages
-        if i % (len(hyperparameters["agent"]) * len(hyperparameters["adv_percentage"])) == 0:
+        if i + 1 % (len(hyperparameters["agent"]) * len(hyperparameters["adv_percentage"])) == 0:
             report_results(pickle_file, results, iteration=i)
 
     # Report final results

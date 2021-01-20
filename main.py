@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import sys
 
 import numpy as np
@@ -21,6 +22,7 @@ def get_args(cmd_args=sys.argv):
     parser.add_argument('--N_mu', type=int, default=None)
     parser.add_argument('--N_nu', type=int, default=None)
     parser.add_argument('--N_eval_episodes', type=int, default=None)
+    parser.add_argument('--N_eval_timesteps', type=int, default=None)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--name', type=str, default=None)
@@ -51,10 +53,10 @@ def get_args(cmd_args=sys.argv):
             if config['name'] == arguments.config_name:
                 params = config['params']
                 for k, v in params.items():
-                    if arguments.__getattribute__(k) is not None:
-                        print(f'config file overridden arguments[{k}] = {v}')
+                    if arguments_v := arguments.__getattribute__(k) is not None:
+                        logging.info(f'config file overridden arguments[{k}] = {arguments_v} (was {v})')
                     else:
-                        print(f'config file set arguments[{k}] = {v}')
+                        logging.info(f'config file set arguments[{k}] = {v}')
                         arguments.__setattr__(k, v)
                 found = True
                 break
@@ -72,7 +74,7 @@ def get_args(cmd_args=sys.argv):
         arguments.adversarial = not arguments.force_no_adversarial
     arguments.adv_name = 'adv'
 
-    print(f'arguments: {arguments}')
+    logging.info(f'arguments: {arguments}')
 
     if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage
     if arguments.N_steps: assert arguments.N_steps % 2 == 0
@@ -121,13 +123,13 @@ def setup():
     if args.evaluate:
         prot_agent = PPO.load(f'{args.pickle}_{args.prot_name}')
         if prot_agent.seed != args.seed:
-            print(f'warning: {prot_agent.seed=} does not match {args.seed=}')
+            logging.info(f'warning: {prot_agent.seed=} does not match {args.seed=}')
         prot_agent.set_env(prot_env)
 
         if args.adversarial:
             adv_agent = PPO.load(f'{args.pickle}_{args.adv_name}')
             if adv_agent.seed != args.seed:
-                print(f'warning: {adv_agent.seed=} does not match {args.seed=}')
+                logging.info(f'warning: {adv_agent.seed=} does not match {args.seed=}')
             adv_agent.set_env(adv_env)
         else:
             adv_agent = None
@@ -159,7 +161,8 @@ def run(arguments):
         if args.evaluate:
             prot_env.training = False
             prot_env.norm_reward = False
-            reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes, max_episode_length=1000,
+            reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes,
+                                              max_episode_length=args.N_eval_timesteps,
                                               return_episode_rewards=True)
             avg_reward = np.mean(reward)
             std_reward = np.std(reward)
@@ -193,4 +196,4 @@ if __name__ == '__main__':
     result = run(get_args())
     if result is not None:
         avg_reward, std_reward = result
-        print(f'reward={avg_reward}+={std_reward}')
+        logging.info(f'reward={avg_reward}+={std_reward}')
