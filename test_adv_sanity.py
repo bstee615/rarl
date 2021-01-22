@@ -45,7 +45,7 @@ class RarlSanityTests(unittest.TestCase):
             # do adv env with adversary disengaged
             bridge = Bridge()
             env = make_vec_env(
-                lambda: ProtagonistRarlEnv(adv_env_c(renders=False, adv_percentage=1.0), bridge),
+                lambda: ProtagonistRarlEnv(adv_env_c(), bridge),
                 seed=seed
             )
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
@@ -66,11 +66,11 @@ class RarlSanityTests(unittest.TestCase):
             # do adv env with adversary engaged
             bridge = Bridge()
             prot_env = make_vec_env(
-                lambda: ProtagonistRarlEnv(adv_env_c(renders=False, adv_percentage=1.0), bridge),
+                lambda: ProtagonistRarlEnv(adv_env_c(), bridge),
                 seed=seed
             )
             adv_env = make_vec_env(
-                lambda: AdversarialRarlEnv(adv_env_c(renders=False, adv_percentage=1.0), bridge),
+                lambda: AdversarialRarlEnv(adv_env_c(), bridge),
                 seed=seed
             )
             prot_env = VecNormalize(prot_env, norm_obs=True, norm_reward=True, clip_obs=10.)
