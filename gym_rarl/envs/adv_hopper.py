@@ -15,7 +15,7 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
         bounds_mag = np.ones([2])
         return gym.spaces.Box(-bounds_mag, bounds_mag)
 
-    def __init__(self, renders, adv_percentage, **kwargs):
+    def __init__(self, adv_percentage=1.0, renders=False, **kwargs):
         HopperBulletEnv.__init__(self, render=renders, **kwargs)
 
         self.adv_force_mag = 1.0 * adv_percentage  # TODO tune this parameter

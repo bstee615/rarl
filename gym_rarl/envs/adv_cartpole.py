@@ -15,7 +15,7 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     def adv_action_space(self):
         return self._adv_action_space
 
-    def __init__(self, adv_percentage, **kwargs):
+    def __init__(self, adv_percentage=1.0, **kwargs):
         CartPoleBulletEnv.__init__(self, **kwargs)
 
         self.adv_force_mag = (self.force_mag * 0.2) * adv_percentage  # TODO tune this parameter
