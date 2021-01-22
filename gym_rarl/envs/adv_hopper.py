@@ -1,3 +1,5 @@
+from time import sleep
+
 import gym
 from gym.envs.classic_control.acrobot import *
 from pybullet_envs.gym_locomotion_envs import HopperBulletEnv
@@ -18,7 +20,7 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
     def __init__(self, adv_percentage=1.0, renders=False, **kwargs):
         HopperBulletEnv.__init__(self, render=renders, **kwargs)
 
-        self.adv_force_mag = 1.0 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 75.0 * adv_percentage  # TODO tune this parameter
         self.foot_link_i = None
 
     def get_ob(self):
@@ -29,8 +31,10 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
         Copied from pybullet (gym==0.17.3, pybullet==3.0.7)
         """
         if not self.scene.multiplayer:  # if multiplayer, action first applied to all robots, then global step() called, then _step() for all robots with the same actions
-            self.robot.apply_action(action)  # protagonist action
-            self.apply_adv_action(adv_action)  # antagonist action
+            if action is not None:
+                self.robot.apply_action(action)  # protagonist action
+            if adv_action is not None:
+                self.apply_adv_action(adv_action)  # antagonist action
             self.scene.global_step()
 
         state = self.robot.calc_state()  # also calculates self.joints_at_limit
@@ -61,9 +65,12 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
             else:
                 self.robot.feet_contact[i] = 0.0
 
-        electricity_cost = self.electricity_cost * float(np.abs(action * self.robot.joint_speeds).mean(
-        ))  # let's assume we have DC motor with controller, and reverse current braking
-        electricity_cost += self.stall_torque_cost * float(np.square(action).mean())
+        if action is None:
+            electricity_cost = 0
+        else:
+            electricity_cost = self.electricity_cost * float(np.abs(action * self.robot.joint_speeds).mean(
+            ))  # let's assume we have DC motor with controller, and reverse current braking
+            electricity_cost += self.stall_torque_cost * float(np.square(action).mean())
 
         joints_at_limit_cost = float(self.joints_at_limit_cost * self.robot.joints_at_limit)
         debugmode = 0
@@ -93,8 +100,6 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
         return state, sum(self.rewards), bool(done), {}
 
     def apply_adv_action(self, adv_action):
-        if adv_action is None:
-            return
         p = self.robot._p
         body_i = self.robot.robot_body.bodies[0]
         foot_link_i = get_link_by_name(p, body_i, 'foot')
@@ -110,12 +115,12 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
 
 
 def main():
-    env = AdversarialHopperEnv(render=True, adv_percentage=1.0)
+    env = AdversarialHopperEnv(renders=True, adv_percentage=1.0)
     env.reset()
     for _ in range(1000):
         env.render()
-        # sleep(1 / 30)
-        env.step_two_agents(env.action_space.sample(), env.adv_action_space.sample())
+        sleep(1 / 30)
+        env.step_two_agents(None, [-1.0, 1.0])
         # env.step(0)
     env.close()
 
