@@ -12,10 +12,11 @@ from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
+from gym_rarl.envs.adv_hopper import AdversarialHopperEnv
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 
-def get_args(cmd_args=sys.argv):
+def get_args(cmd_args=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--N_steps', type=int, default=None)  # Number of steps in a rolloout, N_traj in Algorithm 1
     parser.add_argument('--N_iter', type=int, default=None)
@@ -33,6 +34,8 @@ def get_args(cmd_args=sys.argv):
     parser.add_argument('--adv_percentage', type=float, default=None)
     parser.add_argument("--force-adversarial", action='store_true')
     parser.add_argument("--force-no-adversarial", action='store_true')
+    parser.add_argument("--env", type=str, default='AdversarialCartPoleEnv',
+                        help=', '.join([str(e) for e in [AdversarialCartPoleEnv, AdversarialHopperEnv]]))
     arguments = parser.parse_args(cmd_args)
 
     arguments.logs = f'./logs/{arguments.name}'
@@ -74,10 +77,14 @@ def get_args(cmd_args=sys.argv):
         arguments.adversarial = not arguments.force_no_adversarial
     arguments.adv_name = 'adv'
 
+    arguments.env_constructor = globals()[arguments.env]
+
     logging.info(f'arguments: {arguments}')
 
-    if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage
-    if arguments.N_steps: assert arguments.N_steps % 2 == 0
+    if arguments.adv_percentage:
+        assert 0.0 <= arguments.adv_percentage
+    if arguments.N_steps:
+        assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
 
     return arguments
@@ -105,15 +112,15 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
-    base_protenv = AdversarialCartPoleEnv(renders=args.render,
-                                          adv_percentage=args.adv_percentage if args.adversarial else 0.0)
+    base_protenv = args.env_constructor(renders=args.render,
+                                        adv_percentage=args.adv_percentage if args.adversarial else 0.0)
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
     prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
 
     if args.adversarial:
-        base_advenv = AdversarialCartPoleEnv(renders=args.render,
-                                             adv_percentage=args.adv_percentage)
+        base_advenv = args.env_constructor(renders=args.render,
+                                           adv_percentage=args.adv_percentage)
         adv_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
         adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
                         evaluate_name=adv_envname)
