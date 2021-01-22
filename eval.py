@@ -7,7 +7,7 @@ from pathlib import Path
 
 from main import run, get_args
 
-render = False
+render = True
 args_fmt = """
 --evaluate --force-adversarial
 --N_eval_episodes=10 --N_eval_timesteps=1000
@@ -22,6 +22,14 @@ hyperparameters = {
     "adv_percentage": list(reversed([0.0, 0.25, 0.5, 0.75, 1.0])),
     "agent": ['', '--control'],
 }
+
+
+# Free params
+# hyperparameters = {
+#     "seed": [1],
+#     "adv_percentage": list(reversed([0.0, 0.25, 0.5, 0.75, 1.0])),
+#     "agent": ['', '--control'],
+# }
 
 
 # Enjoy one seed
