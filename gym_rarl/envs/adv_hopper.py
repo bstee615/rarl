@@ -15,8 +15,8 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
         bounds_mag = np.ones([2])
         return gym.spaces.Box(-bounds_mag, bounds_mag)
 
-    def __init__(self, adv_percentage, **kwargs):
-        HopperBulletEnv.__init__(self, **kwargs)
+    def __init__(self, renders, adv_percentage, **kwargs):
+        HopperBulletEnv.__init__(self, render=renders, **kwargs)
 
         self.adv_force_mag = 1.0 * adv_percentage  # TODO tune this parameter
         self.foot_link_i = None
@@ -93,6 +93,8 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
         return state, sum(self.rewards), bool(done), {}
 
     def apply_adv_action(self, adv_action):
+        if adv_action is None:
+            return
         p = self.robot._p
         body_i = self.robot.robot_body.bodies[0]
         foot_link_i = get_link_by_name(p, body_i, 'foot')
@@ -108,7 +110,7 @@ class AdversarialHopperEnv(BaseAdversarialEnv, HopperBulletEnv):
 
 
 def main():
-    env = AdversarialHopperEnv(render=False, adv_percentage=1.0)
+    env = AdversarialHopperEnv(render=True, adv_percentage=1.0)
     env.reset()
     for _ in range(1000):
         env.render()
