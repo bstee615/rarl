@@ -14,6 +14,7 @@ from gym_rarl.envs.adv_walkers import AdversarialWalker2DEnv, AdversarialHalfChe
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 verbose = False
+renders = False
 ts = 16
 ep = 3
 seed = 123
@@ -41,8 +42,10 @@ def learn_love_log(agent, env):
 class RarlSanityTests(unittest.TestCase):
     def test_control_env_behaves_like_rarl_env(self):
         for env_c, adv_env_c in env_pairs:
+            print(env_c.__name__, adv_env_c.__name__)
             # do control
-            env = make_vec_env(lambda: env_c(), seed=seed)
+            env = make_vec_env(
+                lambda: env_c(**{'renders' if env_c.__name__ == 'CartPoleBulletEnv' else 'render': renders}), seed=seed)
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
             agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
@@ -50,7 +53,7 @@ class RarlSanityTests(unittest.TestCase):
             # do adv env with adversary disengaged
             bridge = Bridge()
             env = make_vec_env(
-                lambda: ProtagonistRarlEnv(adv_env_c(), bridge),
+                lambda: ProtagonistRarlEnv(adv_env_c(render=renders), bridge),
                 seed=seed
             )
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
@@ -63,7 +66,8 @@ class RarlSanityTests(unittest.TestCase):
 
     def test_control_env_doesnt_behave_like_rarl_env(self):
         for env_c, adv_env_c in env_pairs:
-            env = make_vec_env(lambda: env_c(), seed=seed)
+            env = make_vec_env(
+                lambda: env_c(**{'renders' if env_c.__name__ == 'CartPoleBulletEnv' else 'render': renders}), seed=seed)
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
             agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
@@ -71,11 +75,11 @@ class RarlSanityTests(unittest.TestCase):
             # do adv env with adversary engaged
             bridge = Bridge()
             prot_env = make_vec_env(
-                lambda: ProtagonistRarlEnv(adv_env_c(), bridge),
+                lambda: ProtagonistRarlEnv(adv_env_c(render=renders), bridge),
                 seed=seed
             )
             adv_env = make_vec_env(
-                lambda: AdversarialRarlEnv(adv_env_c(), bridge),
+                lambda: AdversarialRarlEnv(adv_env_c(render=renders), bridge),
                 seed=seed
             )
             prot_env = VecNormalize(prot_env, norm_obs=True, norm_reward=True, clip_obs=10.)
