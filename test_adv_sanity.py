@@ -2,22 +2,29 @@ import unittest
 
 import numpy as np
 from pybullet_envs.bullet import CartPoleBulletEnv
-from pybullet_envs.gym_locomotion_envs import HopperBulletEnv
+from pybullet_envs.gym_locomotion_envs import HopperBulletEnv, Walker2DBulletEnv, HalfCheetahBulletEnv, AntBulletEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
+from gym_rarl.envs.adv_ant import AdversarialAntEnv
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
+from gym_rarl.envs.adv_halfcheetah import AdversarialHalfCheetahEnv
 from gym_rarl.envs.adv_hopper import AdversarialHopperEnv
+from gym_rarl.envs.adv_walker2d import AdversarialWalker2DEnv
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
+verbose = False
 ts = 16
 ep = 3
 seed = 123
 env_pairs = [
     (HopperBulletEnv, AdversarialHopperEnv),
     (CartPoleBulletEnv, AdversarialCartPoleEnv),
+    (Walker2DBulletEnv, AdversarialWalker2DEnv),
+    (HalfCheetahBulletEnv, AdversarialHalfCheetahEnv),
+    (AntBulletEnv, AdversarialAntEnv),
 ]
 
 
@@ -39,7 +46,7 @@ class RarlSanityTests(unittest.TestCase):
             # do control
             env = make_vec_env(lambda: env_c(), seed=seed)
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
-            agent = PPO('MlpPolicy', env, verbose=True, seed=seed, n_steps=ts)
+            agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary disengaged
@@ -49,7 +56,7 @@ class RarlSanityTests(unittest.TestCase):
                 seed=seed
             )
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
-            agent = PPO('MlpPolicy', env, verbose=True, seed=seed, n_steps=ts)
+            agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(agent, env)
 
             assert np.array_equal(initial_adv_obs, initial_control_obs)
@@ -60,7 +67,7 @@ class RarlSanityTests(unittest.TestCase):
         for env_c, adv_env_c in env_pairs:
             env = make_vec_env(lambda: env_c(), seed=seed)
             env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
-            agent = PPO('MlpPolicy', env, verbose=True, seed=seed, n_steps=ts)
+            agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary engaged
@@ -75,8 +82,8 @@ class RarlSanityTests(unittest.TestCase):
             )
             prot_env = VecNormalize(prot_env, norm_obs=True, norm_reward=True, clip_obs=10.)
             adv_env = VecNormalize(adv_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-            prot_agent = PPO('MlpPolicy', prot_env, verbose=True, seed=seed, n_steps=ts)
-            adv_agent = PPO('MlpPolicy', adv_env, verbose=True, seed=seed, n_steps=ts)
+            prot_agent = PPO('MlpPolicy', prot_env, verbose=verbose, seed=seed, n_steps=ts)
+            adv_agent = PPO('MlpPolicy', adv_env, verbose=verbose, seed=seed, n_steps=ts)
             bridge.link_agents(prot_agent, adv_agent)
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(prot_agent, prot_env)
 
