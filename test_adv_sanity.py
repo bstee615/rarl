@@ -8,11 +8,9 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
-from gym_rarl.envs.adv_ant import AdversarialAntEnv
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_halfcheetah import AdversarialHalfCheetahEnv
-from gym_rarl.envs.adv_hopper import AdversarialHopperEnv
-from gym_rarl.envs.adv_walker2d import AdversarialWalker2DEnv
+from gym_rarl.envs.adv_walkers import AdversarialWalker2DEnv, AdversarialHalfCheetahEnv, AdversarialHopperEnv, \
+    AdversarialAntEnv
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 verbose = False

@@ -4,7 +4,7 @@ import logging
 import sys
 
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_hopper import AdversarialHopperEnv
+from gym_rarl.envs.adv_walkers import AdversarialHopperEnv
 
 args = None
 
