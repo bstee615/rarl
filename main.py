@@ -34,14 +34,14 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
-    base_protenv = args.env_constructor(renders=args.render,
+    base_protenv = args.env_constructor(render=args.render,
                                         adv_percentage=args.adv_percentage if args.adversarial else 0.0)
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
     prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
 
     if args.adversarial:
-        base_advenv = args.env_constructor(renders=args.render,
+        base_advenv = args.env_constructor(render=args.render,
                                            adv_percentage=args.adv_percentage)
         adv_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
         adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,

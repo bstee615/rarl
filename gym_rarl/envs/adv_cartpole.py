@@ -3,7 +3,7 @@ from time import sleep
 from gym.envs.classic_control.acrobot import *
 from pybullet_envs.bullet import CartPoleBulletEnv
 
-from gym_rarl.envs.adv_env import BaseAdversarialEnv, get_link_by_name
+from gym_rarl.envs.adv_env import BaseAdversarialEnv, get_link_by_name, scale_physics
 
 
 class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
@@ -15,7 +15,7 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     def adv_action_space(self):
         return self._adv_action_space
 
-    def __init__(self, render=False, adv_percentage=1.0, **kwargs):
+    def __init__(self, render=False, mass_percentage=1.0, friction_percentage=1.0, adv_percentage=1.0, **kwargs):
         CartPoleBulletEnv.__init__(self, renders=render, **kwargs)
 
         self.adv_force_mag = (self.force_mag * 0.2) * adv_percentage  # TODO tune this parameter
@@ -26,6 +26,16 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         else:
             action_high = np.array([self.adv_force_mag] * action_dim)
             self._adv_action_space = spaces.Box(-action_high, action_high)
+
+        self.mass_percentage = mass_percentage
+        self.friction_percentage = friction_percentage
+
+    def reset(self):
+        obs = super().reset()
+        p = self._p
+        self.pole_link_i = get_link_by_name(p, self.cartpole, 'pole')
+        scale_physics(p, self.cartpole, self.pole_link_i, self.mass_percentage, self.friction_percentage)
+        return obs
 
     def get_ob(self):
         return np.array(self.state)
@@ -48,8 +58,7 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
                 adv_force = (adv_force_scaled[0], 0.0, adv_force_scaled[1])
             else:
                 adv_force = (adv_action[0], 0.0, adv_action[1])
-            pole_link_i = get_link_by_name(p, self.cartpole, 'pole')
-            p.applyExternalForce(self.cartpole, pole_link_i, forceObj=adv_force,
+            p.applyExternalForce(self.cartpole, self.pole_link_i, forceObj=adv_force,
                                  posObj=(0.0, 0.0, 0.0),
                                  flags=p.WORLD_FRAME)
 
