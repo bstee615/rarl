@@ -29,7 +29,9 @@ def parse_args(cmd_args=None):
     parser.add_argument('--N_nu', type=int)
     parser.add_argument('--N_eval_episodes', type=int)
     parser.add_argument('--N_eval_timesteps', type=int)
-    parser.add_argument('--adv_percentage', type=float)
+    parser.add_argument('--adv_percentage', type=float, default=1.0)
+    parser.add_argument('--mass_percentage', type=float, default=1.0)
+    parser.add_argument('--friction_percentage', type=float, default=1.0)
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
     parser.add_argument("--env", type=str, default='AdversarialCartPoleEnv',
