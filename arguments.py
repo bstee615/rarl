@@ -4,9 +4,16 @@ import logging
 import sys
 
 from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_walkers import AdversarialHopperEnv
+from gym_rarl.envs.adv_walkers import *
 
 args = None
+all_envs = {e.__name__: e for e in [
+    AdversarialCartPoleEnv,
+    AdversarialHopperEnv,
+    AdversarialWalker2DEnv,
+    AdversarialHalfCheetahEnv,
+    AdversarialAntEnv,
+]}
 
 
 def parse_args(cmd_args=None):
@@ -35,7 +42,7 @@ def parse_args(cmd_args=None):
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
     parser.add_argument("--env", type=str, default='AdversarialCartPoleEnv',
-                        help=', '.join([str(e) for e in [AdversarialCartPoleEnv, AdversarialHopperEnv]]))
+                        help=', '.join(all_envs.keys()))
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -77,7 +84,7 @@ def populate_derivatives(arguments):
     # Are we running RARL or control
     if arguments.adv_percentage is None:
         arguments.adv_percentage = 1.0
-    arguments.env_constructor = globals()[arguments.env]
+    arguments.env_constructor = all_envs[arguments.env]
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
         arguments.adversarial = arguments.force_adversarial
