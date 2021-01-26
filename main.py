@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 
 import numpy as np
 from stable_baselines3 import PPO
@@ -34,41 +35,49 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
-    base_protenv = args.env_constructor(render=args.render,
-                                        adv_percentage=args.adv_percentage if args.adversarial else 0.0)
-    prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
+    loaded_constructor = partial(args.env_constructor,
+                                 render=args.render,
+                                 adv_percentage=args.adv_percentage,
+                                 mass_percentage=args.mass_percentage,
+                                 friction_percentage=args.friction_percentage,
+                                 )
+
+    base_protenv = loaded_constructor(
+        render=args.render,
+        adv_percentage=args.adv_percentage)
     prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
-                     evaluate_name=prot_envname)
+                     evaluate_name=f'{args.pickle}-{args.prot_envname}' if args.evaluate else None)
 
     if args.adversarial:
-        base_advenv = args.env_constructor(render=args.render,
-                                           adv_percentage=args.adv_percentage)
-        adv_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
+        base_advenv = loaded_constructor(
+            render=args.render,
+            adv_percentage=args.adv_percentage
+        )
         adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
-                        evaluate_name=adv_envname)
+                        evaluate_name=f'{args.pickle}-{args.adv_envname}' if args.evaluate else None)
     else:
         adv_env = None
 
     if args.evaluate:
-        prot_agent = PPO.load(f'{args.pickle}_{args.prot_name}')
+        prot_agent = PPO.load(f'{args.pickle}-{args.prot_name}')
         if prot_agent.seed != args.seed:
             logging.info(f'warning: {prot_agent.seed=} does not match { args.seed=}')
         prot_agent.set_env(prot_env)
 
         if args.adversarial:
-            adv_agent = PPO.load(f'{args.pickle}_{args.adv_name}')
+            adv_agent = PPO.load(f'{args.pickle}-{args.adv_name}')
             if adv_agent.seed != args.seed:
                 logging.info(f'warning: {adv_agent.seed=} does not match { args.seed=}')
             adv_agent.set_env(adv_env)
         else:
             adv_agent = None
     else:
-        prot_logname = f'{args.logs}_{args.prot_name}' if args.logs else None
+        prot_logname = f'{args.logs}-{args.prot_name}' if args.logs else None
         prot_agent = PPO("MlpPolicy", prot_env, verbose=args.verbose, seed=args.seed,
                          tensorboard_log=prot_logname, n_steps=args.N_steps)
 
         if args.adversarial:
-            adv_logname = f'{args.logs}_{args.adv_name}' if args.logs else None
+            adv_logname = f'{args.logs}-{args.adv_name}' if args.logs else None
             adv_agent = PPO("MlpPolicy", adv_env, verbose=args.verbose, seed=args.seed,
                             tensorboard_log=adv_logname, n_steps=args.N_steps)
         else:
@@ -103,13 +112,13 @@ def run():
                 if adv is not None:
                     adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=i == 0)
 
-            prot.save(f'{args.pickle}_{args.prot_name}')
-            prot_env.save(f'{args.pickle}_{args.prot_name}env')
+            prot.save(f'{args.pickle}-{args.prot_name}')
+            prot_env.save(f'{args.pickle}-{args.prot_envname}')
 
             if adv is not None:
-                adv.save(f'{args.pickle}_{args.adv_name}')
+                adv.save(f'{args.pickle}-{args.adv_name}')
             if adv_env is not None:
-                adv_env.save(f'{args.pickle}_{args.adv_name}env')
+                adv_env.save(f'{args.pickle}-{args.adv_envname}')
     finally:
         prot_env.close()
         if adv_env is not None:

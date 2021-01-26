@@ -84,6 +84,11 @@ def populate_derivatives(arguments):
         arguments.adversarial = not arguments.force_no_adversarial
     arguments.adv_name = f'adv-{arguments.env}'
 
+    if arguments.evaluate:
+        arguments.prot_envname = f'{arguments.prot_name}-env'
+    if arguments.evaluate:
+        arguments.adv_envname = f'{arguments.adv_name}-env'
+
 
 def get_config_arguments(existing_arguments):
     """
