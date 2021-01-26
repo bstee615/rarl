@@ -34,7 +34,8 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         obs = super().reset()
         p = self._p
         self.pole_link_i = get_link_by_name(p, self.cartpole, 'pole')
-        scale_physics(p, self.cartpole, self.pole_link_i, self.mass_percentage, self.friction_percentage)
+        for link_i in range(p.getNumJoints(self.cartpole)):
+            scale_physics(p, self.cartpole, self.pole_link_i, self.mass_percentage, self.friction_percentage)
         return obs
 
     def get_ob(self):
