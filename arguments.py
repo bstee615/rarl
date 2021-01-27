@@ -77,7 +77,6 @@ def populate_derivatives(arguments):
     # Are we running RARL or control
     if arguments.adv_percentage is None:
         arguments.adv_percentage = 1.0
-    arguments.env_constructor = all_envs[arguments.env]
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
         arguments.adversarial = arguments.force_adversarial

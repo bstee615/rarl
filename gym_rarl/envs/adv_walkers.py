@@ -6,7 +6,7 @@ from pybullet_envs.gym_locomotion_envs import Walker2DBulletEnv, HalfCheetahBull
 from gym_rarl.envs.base_adv_walker import BaseAdversarialWalkerEnv
 
 
-class AdversarialWalker2DEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
+class AdversarialWalker2DBulletEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
     @property
     def parts_to_perturb(self):
         return ['foot', 'foot_left']
@@ -17,7 +17,7 @@ class AdversarialWalker2DEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
         self.adv_force_mag = 250.0 * adv_percentage  # TODO tune this parameter
 
 
-class AdversarialHalfCheetahEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
+class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
     @property
     def parts_to_perturb(self):
         return ['torso', 'bfoot', 'ffoot']
@@ -28,7 +28,7 @@ class AdversarialHalfCheetahEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
         self.adv_force_mag = 250.0 * adv_percentage  # TODO tune this parameter
 
 
-class AdversarialHopperEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
+class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
     @property
     def parts_to_perturb(self):
         return ['foot']
@@ -39,7 +39,7 @@ class AdversarialHopperEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
         self.adv_force_mag = 75.0 * adv_percentage  # TODO tune this parameter
 
 
-class AdversarialAntEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
+class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     @property
     def parts_to_perturb(self):
         return ['front_left_foot', 'front_right_foot', 'left_back_foot', 'right_back_foot']
@@ -47,11 +47,11 @@ class AdversarialAntEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 600.0 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 100.0 * adv_percentage  # TODO tune this parameter
 
 
 def main():
-    env = AdversarialAntEnv(render=True, adv_percentage=1.0)
+    env = AdversarialAntBulletEnv(render=True, adv_percentage=1.0)
     env.reset()
     for _ in range(1000):
         env.render()

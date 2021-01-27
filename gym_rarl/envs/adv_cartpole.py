@@ -3,10 +3,10 @@ from time import sleep
 from gym.envs.classic_control.acrobot import *
 from pybullet_envs.bullet import CartPoleBulletEnv
 
-from gym_rarl.envs.adv_env import BaseAdversarialEnv, get_link_by_name, scale_physics
+from gym_rarl.envs.adv_env import BaseAdversarialEnv, scale_physics, get_link_by_name
 
 
-class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
+class AdversarialCartPoleBulletEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     """
     Wraps CartPole env and allows two actors to act in each step.
     """
@@ -86,7 +86,7 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
 
 
 def main():
-    env = AdversarialCartPoleEnv(renders=True, adv_percentage=1.0)
+    env = AdversarialCartPoleBulletEnv(renders=True, adv_percentage=1.0)
     env.reset()
     for _ in range(1000):
         env.render()

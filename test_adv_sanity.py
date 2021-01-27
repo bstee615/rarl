@@ -1,29 +1,24 @@
 import unittest
-from functools import partial
 
 import numpy as np
-from pybullet_envs.bullet import CartPoleBulletEnv
-from pybullet_envs.gym_locomotion_envs import HopperBulletEnv, Walker2DBulletEnv, HalfCheetahBulletEnv, AntBulletEnv
+import pybullet_envs
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecNormalize
 
 from bridge import Bridge
-from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_walkers import AdversarialWalker2DEnv, AdversarialHalfCheetahEnv, AdversarialHopperEnv, \
-    AdversarialAntEnv
-from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
+from gym_rarl import envs
 
 verbose = False
-renders = False
+render = False
 ts = 300
 seed = 123
 env_pairs = [
-    (HopperBulletEnv, AdversarialHopperEnv),
-    (CartPoleBulletEnv, AdversarialCartPoleEnv),
-    (Walker2DBulletEnv, AdversarialWalker2DEnv),
-    (HalfCheetahBulletEnv, AdversarialHalfCheetahEnv),
-    (AntBulletEnv, AdversarialAntEnv),
+    ('HopperBulletEnv-v0', 'AdversarialHopperBulletEnv-v0'),
+    ('CartPoleBulletEnv-v1', 'AdversarialCartPoleBulletEnv-v0'),
+    ('Walker2DBulletEnv-v0', 'AdversarialWalker2DBulletEnv-v0'),
+    ('HalfCheetahBulletEnv-v0', 'AdversarialHalfCheetahBulletEnv-v0'),
+    ('AntBulletEnv-v0', 'AdversarialAntBulletEnv-v0'),
 ]
 
 
@@ -39,16 +34,14 @@ def learn_love_log(agent, env):
     return initial_obs, last_obs, last_prediction
 
 
-def init_adv(adv_env_c, disable_adv=False):
+def init_adv(adv_env_id, disable_adv=False, env_kwargs=None):
     bridge = Bridge()
-    prot_env = make_vec_env(
-        lambda: ProtagonistRarlEnv(adv_env_c(render=renders), bridge),
-        seed=seed
-    )
-    adv_env = make_vec_env(
-        lambda: AdversarialRarlEnv(adv_env_c(render=renders), bridge),
-        seed=seed
-    )
+    default_env_kwargs = {'renders' if 'CartPole' in adv_env_id else 'render': render, "bridge": bridge}
+    if env_kwargs is None:
+        env_kwargs = {}
+    env_kwargs.update(default_env_kwargs)
+    prot_env = make_vec_env(adv_env_id, env_kwargs={**env_kwargs, **{"agent": 'protagonist'}}, seed=seed)
+    adv_env = make_vec_env(adv_env_id, env_kwargs={**env_kwargs, **{"agent": 'adversary'}}, seed=seed)
     prot_env = VecNormalize(prot_env, norm_obs=True, norm_reward=True, clip_obs=10.)
     adv_env = VecNormalize(adv_env, norm_obs=True, norm_reward=True, clip_obs=10.)
     prot_agent = PPO('MlpPolicy', prot_env, verbose=verbose, seed=seed, n_steps=ts)
@@ -60,48 +53,53 @@ def init_adv(adv_env_c, disable_adv=False):
     return prot_agent, prot_env
 
 
-def init_control(env_c):
-    env = make_vec_env(
-        lambda: env_c(**{'renders' if env_c.__name__ == 'CartPoleBulletEnv' else 'render': renders}), seed=seed)
+def init_control(env_id):
+    env_kwargs = {'renders' if 'CartPole' in env_id else 'render': render}
+    env = make_vec_env(env_id, env_kwargs=env_kwargs, seed=seed)
     env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
     agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts)
     return agent, env
 
 
 class RarlSanityTests(unittest.TestCase):
+    def test_envs_are_registered(self):
+        for e, a in env_pairs:
+            assert f'- {e}' in pybullet_envs.getList()
+            assert a in envs.getList()
+
     def test_null_adversary_acts_the_same(self):
-        for env_c, adv_env_c in env_pairs:
-            print(env_c.__name__, adv_env_c.__name__)
+        for env_id, adv_env_id in env_pairs:
+            print(env_id, adv_env_id)
             # do control
-            agent, env = init_control(env_c)
+            agent, env = init_control(env_id)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary disengaged
-            prot_agent, prot_env = init_adv(adv_env_c, disable_adv=True)
+            prot_agent, prot_env = init_adv(adv_env_id, disable_adv=True)
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(prot_agent, prot_env)
 
             assert np.array_equal(initial_adv_obs, initial_control_obs)
             assert np.array_equal(last_adv_obs, last_control_obs)
 
     def test_acting_adversary_acts_different(self):
-        for env_c, adv_env_c in env_pairs:
-            agent, env = init_control(env_c)
+        for env_id, adv_env_id in env_pairs:
+            agent, env = init_control(env_id)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary engaged
-            prot_agent, prot_env = init_adv(adv_env_c)
+            prot_agent, prot_env = init_adv(adv_env_id)
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(prot_agent, prot_env)
 
             assert np.array_equal(initial_adv_obs, initial_control_obs)
             assert not np.array_equal(last_adv_obs, last_control_obs)
 
     def test_different_mass_acts_different(self):
-        for env_c, adv_env_c in env_pairs:
-            agent, env = init_control(env_c)
+        for env_id, adv_env_id in env_pairs:
+            agent, env = init_control(env_id)
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary engaged
-            prot_agent, prot_env = init_adv(partial(adv_env_c, mass_percentage=0.5), disable_adv=True)
+            prot_agent, prot_env = init_adv(adv_env_id, disable_adv=True, env_kwargs={"mass_percentage": 0.5})
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(prot_agent, prot_env)
 
             assert np.array_equal(initial_adv_obs, initial_control_obs)
@@ -113,11 +111,11 @@ class RarlSanityTests(unittest.TestCase):
             initial_control_obs, last_control_obs, last_control_prediction = learn_love_log(agent, env)
 
             # do adv env with adversary engaged
-            prot_agent, prot_env = init_adv(partial(adv_env_c, friction_percentage=0.5), disable_adv=True)
+            prot_agent, prot_env = init_adv(adv_env_c, env_kwargs={"friction_percentage": 0.5}, disable_adv=True)
             initial_adv_obs, last_adv_obs, last_adv_prediction = learn_love_log(prot_agent, prot_env)
 
             assert np.array_equal(initial_adv_obs, initial_control_obs)
-            if 'CartPole' not in adv_env_c.__name__:
+            if 'CartPole' not in adv_env_c:
                 assert not np.array_equal(last_adv_obs, last_control_obs)
 
 
