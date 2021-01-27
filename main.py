@@ -11,11 +11,11 @@ from arguments import parse_args
 from bridge import Bridge
 
 
-def dummy(id, env_kwargs, seed=None, evaluate_name=None):
+def dummy(env_id, env_kwargs, seed=None, evaluate_name=None):
     """
     Set up a dummy environment wrapper for Stable Baselines
     """
-    env = make_vec_env(id, n_envs=1, seed=seed, env_kwargs=env_kwargs)
+    env = make_vec_env(env_id, n_envs=1, seed=seed, env_kwargs=env_kwargs)
     # Automatically normalize the input features and reward
     if evaluate_name:
         env = VecNormalize.load(f'{evaluate_name}', env)
@@ -96,9 +96,9 @@ def run(arguments):
             reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes,
                                               max_episode_length=args.N_eval_timesteps,
                                               return_episode_rewards=True)
-            avg_reward = np.mean(reward)
-            std_reward = np.std(reward)
-            return avg_reward, std_reward
+            mean = np.mean(reward)
+            std = np.std(reward)
+            return mean, std
         else:
             # Train
             """
@@ -126,7 +126,8 @@ def run(arguments):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    result = run(parse_args())
+    args = parse_args()
+    result = run(args)
     if result is not None:
         avg_reward, std_reward = result
         logging.info(f'reward={avg_reward}+={std_reward}')
