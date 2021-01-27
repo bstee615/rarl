@@ -6,6 +6,15 @@ class BaseAdversarialEnv(abc.ABC):
     Wraps a Gym environment where two actors act in each step.
     """
 
+    def __init__(self, agent, bridge, **kwargs):
+        super().__init__(**kwargs)
+        if agent == 'protagonist':
+            self.step = self.step_protagonist
+        else:
+            self.step = self.step_adversary
+            self.action_space = self.adv_action_space
+        self.bridge = bridge
+
     @property
     @abc.abstractmethod
     def adv_action_space(self):
@@ -24,6 +33,26 @@ class BaseAdversarialEnv(abc.ABC):
         Step the environment with an action from each agent.
         """
         pass
+
+    def step_protagonist(self, prot_action):
+        prestep_obs = self.get_ob()
+        # assert self.bridge.is_linked()
+        if self.bridge.adv_agent:
+            adv_action, _ = self.bridge.adv_agent.predict(prestep_obs)
+        else:
+            adv_action = None
+        # print(prot_action, adv_action)
+        poststep_obs, r, d, i = self.step_two_agents(prot_action, adv_action)
+        return poststep_obs, r, d, i
+
+    def step_adversary(self, adv_action):
+        prestep_obs = self.get_ob()
+        if self.bridge.prot_agent:
+            prot_action, _ = self.bridge.prot_agent.predict(prestep_obs)
+        else:
+            prot_action = None
+        poststep_obs, r, d, i = self.step_two_agents(prot_action, adv_action)
+        return poststep_obs, -r, d, i
 
 
 def get_link_by_name(client, body_i, link_name):

@@ -15,10 +15,15 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     def adv_action_space(self):
         return self._adv_action_space
 
-    def __init__(self, render=False, mass_percentage=1.0, friction_percentage=1.0, adv_percentage=1.0, **kwargs):
-        CartPoleBulletEnv.__init__(self, renders=render, **kwargs)
+    def __init__(self, mass_percentage=1.0, friction_percentage=1.0, adv_percentage=1.0, **kwargs):
+        bullet_kwargs = {}
+        if 'renders' in kwargs:
+            bullet_kwargs['renders'] = kwargs.pop('renders')
+        if 'discrete_actions' in kwargs:
+            bullet_kwargs['discrete_actions'] = kwargs.pop('discrete_actions')
+        CartPoleBulletEnv.__init__(self, **bullet_kwargs)
 
-        self.adv_force_mag = (self.force_mag * 0.2) * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 2.0 * adv_percentage  # TODO tune this parameter
         action_dim = 2
         if self._discrete_actions:
             # 2 discrete actions per dimension
@@ -26,6 +31,8 @@ class AdversarialCartPoleEnv(BaseAdversarialEnv, CartPoleBulletEnv):
         else:
             action_high = np.array([self.adv_force_mag] * action_dim)
             self._adv_action_space = spaces.Box(-action_high, action_high)
+
+        BaseAdversarialEnv.__init__(self, **kwargs)
 
         self.mass_percentage = mass_percentage
         self.friction_percentage = friction_percentage

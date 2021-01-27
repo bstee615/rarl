@@ -3,17 +3,10 @@ import json
 import logging
 import sys
 
-from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_walkers import *
+import gym_rarl.envs
 
 args = None
-all_envs = {e.__name__: e for e in [
-    AdversarialCartPoleEnv,
-    AdversarialHopperEnv,
-    AdversarialWalker2DEnv,
-    AdversarialHalfCheetahEnv,
-    AdversarialAntEnv,
-]}
+all_envs = gym_rarl.envs.getList()
 
 
 def parse_args(cmd_args=None):
@@ -41,7 +34,7 @@ def parse_args(cmd_args=None):
     parser.add_argument('--friction_percentage', type=float, default=1.0)
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
-    parser.add_argument("--env", type=str, default='AdversarialCartPoleEnv',
+    parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
                         help=', '.join(all_envs.keys()))
     # Flags
     parser.add_argument('--evaluate', action='store_true')

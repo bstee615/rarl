@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 
 import numpy as np
 from stable_baselines3 import PPO
@@ -10,14 +9,13 @@ from stable_baselines3.common.vec_env import VecNormalize
 
 from arguments import args, parse_args
 from bridge import Bridge
-from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
 
 
-def dummy(env_constructor, seed=None, evaluate_name=None):
+def dummy(id, env_kwargs, seed=None, evaluate_name=None):
     """
     Set up a dummy environment wrapper for Stable Baselines
     """
-    env = make_vec_env(env_constructor, n_envs=1, seed=seed)
+    env = make_vec_env(id, n_envs=1, seed=seed, env_kwargs=env_kwargs)
     # Automatically normalize the input features and reward
     if evaluate_name:
         env = VecNormalize.load(f'{evaluate_name}', env)
@@ -35,25 +33,24 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
-    loaded_constructor = partial(args.env_constructor,
-                                 render=args.render,
-                                 adv_percentage=args.adv_percentage,
-                                 mass_percentage=args.mass_percentage,
-                                 friction_percentage=args.friction_percentage,
-                                 )
+    env_kwargs = {
+        "render": args.render,
+        "adv_percentage": args.adv_percentage,
+        "mass_percentage": args.mass_percentage,
+        "friction_percentage": args.friction_percentage,
+        "bridge": bridge,
+    }
 
-    base_protenv = loaded_constructor(
-        render=args.render,
-        adv_percentage=args.adv_percentage)
-    prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
+    prot_kwargs = dict(env_kwargs)
+    prot_kwargs["agent"] = 'protagonist'
+    prot_env = dummy(args.env, prot_kwargs, seed=args.seed,
                      evaluate_name=f'{args.pickle}-{args.prot_envname}' if args.evaluate else None)
 
+    adv_kwargs = dict(env_kwargs)
+    adv_kwargs["agent"] = 'adversary'
+    del adv_kwargs["render"]
     if args.adversarial:
-        base_advenv = loaded_constructor(
-            render=args.render,
-            adv_percentage=args.adv_percentage
-        )
-        adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
+        adv_env = dummy(args.env, adv_kwargs, seed=args.seed,
                         evaluate_name=f'{args.pickle}-{args.adv_envname}' if args.evaluate else None)
     else:
         adv_env = None
@@ -88,7 +85,10 @@ def setup():
     return prot_agent, adv_agent, prot_env, adv_env
 
 
-def run():
+def run(arguments=None):
+    if arguments is not None:
+        global args
+        args = arguments
     prot, adv, prot_env, adv_env = setup()
     try:
         if args.evaluate:
