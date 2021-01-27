@@ -5,7 +5,6 @@ import sys
 
 import gym_rarl.envs
 
-args = None
 all_envs = gym_rarl.envs.getList()
 
 
@@ -35,7 +34,7 @@ def parse_args(cmd_args=None):
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
     parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
-                        help=', '.join(all_envs.keys()))
+                        help=', '.join(all_envs))
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')

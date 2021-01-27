@@ -7,7 +7,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecNormalize
 
-from arguments import args, parse_args
+from arguments import parse_args
 from bridge import Bridge
 
 
@@ -85,10 +85,9 @@ def setup():
     return prot_agent, adv_agent, prot_env, adv_env
 
 
-def run(arguments=None):
-    if arguments is not None:
-        global args
-        args = arguments
+def run(arguments):
+    global args
+    args = arguments
     prot, adv, prot_env, adv_env = setup()
     try:
         if args.evaluate:
@@ -127,8 +126,7 @@ def run(arguments=None):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    args = parse_args()
-    result = run()
+    result = run(parse_args())
     if result is not None:
         avg_reward, std_reward = result
         logging.info(f'reward={avg_reward}+={std_reward}')
