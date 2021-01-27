@@ -12,8 +12,9 @@ render = True
 args_fmt = """
 --evaluate --force-adversarial
 --N_eval_episodes=10 --N_eval_timesteps=1000
---name=original_{0} --seed={0}
+--name=original_{1}-{0} --seed={0}
 --adv_percentage={1}
+--env=AdversarialAntBulletEnv-v0
 {2}
 """
 
@@ -36,8 +37,8 @@ hyperparameters = {
 # Enjoy one seed
 # hyperparameters = {
 #     "seed": [2],
-#     "adv_percentage": [0.0],
-#     "agent": ['', '--control'],
+#     "adv_percentage": [0.25],
+#     "agent": ['--control'],
 # }
 
 
@@ -84,7 +85,7 @@ def main():
             cmd_args.append('--render')
         args = parse_args(cmd_args)
         set_args(args)
-        avg_reward, std_reward = run()
+        avg_reward, std_reward = run(args)
         logging.info(f'reward={avg_reward}+={std_reward}')
         results.append({
             "hyperparameters": hp_set,

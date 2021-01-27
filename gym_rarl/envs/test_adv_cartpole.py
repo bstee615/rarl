@@ -1,13 +1,13 @@
 import numpy as np
 
-from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
+from gym_rarl.envs.adv_cartpole import AdversarialCartPoleBulletEnv
 
 
 class TestAdversarialActionIntegration:
 
     def setup_method(self, _):
-        self.control_env = AdversarialCartPoleEnv()
-        self.adv_env = AdversarialCartPoleEnv()
+        self.control_env = AdversarialCartPoleBulletEnv()
+        self.adv_env = AdversarialCartPoleBulletEnv()
 
         self.control_env.seed(0)
         self.adv_env.seed(0)
