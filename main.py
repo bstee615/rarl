@@ -33,8 +33,9 @@ def dummy(env_id, env_kwargs, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
+    render_key = "renders" if 'CartPole' in args.env else "render"
     env_kwargs = {
-        "render": args.render,
+        render_key: args.render,
         "adv_percentage": args.adv_percentage,
         "mass_percentage": args.mass_percentage,
         "friction_percentage": args.friction_percentage,
@@ -48,10 +49,10 @@ def setup():
 
     adv_kwargs = dict(env_kwargs)
     adv_kwargs["agent"] = 'adversary'
-    del adv_kwargs["render"]
+    del adv_kwargs[render_key]
     if args.adversarial:
         adv_env = dummy(args.env, adv_kwargs, seed=args.seed,
-                        evaluate_name=f'{args.pickle}-{args.adv_envname}' if args.evaluate else None)
+                        evaluate_name=args.adv_env_pickle if args.evaluate else None)
     else:
         adv_env = None
 
@@ -62,7 +63,7 @@ def setup():
         prot_agent.set_env(prot_env)
 
         if args.adversarial:
-            adv_agent = PPO.load(f'{args.pickle}-{args.adv_name}')
+            adv_agent = PPO.load(args.adv_pickle)
             if adv_agent.seed != args.seed:
                 logging.info(f'warning: {adv_agent.seed=} does not match { args.seed=}')
             adv_agent.set_env(adv_env)
@@ -94,7 +95,6 @@ def run(arguments):
             prot_env.training = False
             prot_env.norm_reward = False
             reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes,
-                                              max_episode_length=args.N_eval_timesteps,
                                               return_episode_rewards=True)
             mean = np.mean(reward)
             std = np.std(reward)
@@ -115,9 +115,9 @@ def run(arguments):
             prot_env.save(f'{args.pickle}-{args.prot_envname}')
 
             if adv is not None:
-                adv.save(f'{args.pickle}-{args.adv_name}')
+                adv.save(arguments.adv_pickle)
             if adv_env is not None:
-                adv_env.save(f'{args.pickle}-{args.adv_envname}')
+                adv_env.save(args.adv_env_pickle)
     finally:
         prot_env.close()
         if adv_env is not None:

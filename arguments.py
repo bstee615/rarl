@@ -35,6 +35,7 @@ def parse_args(cmd_args=None):
     # The name of the adversarial environment class
     parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
                         help=', '.join(all_envs))
+    parser.add_argument("--force-adv-name", type=str)
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -82,10 +83,16 @@ def populate_derivatives(arguments):
     else:
         arguments.prot_name = f'prot-{arguments.env}'
         arguments.adversarial = not arguments.force_no_adversarial
+
     arguments.adv_name = f'adv-{arguments.env}'
+    if arguments.force_adv_name is None:
+        arguments.adv_pickle = f'{arguments.pickle}-{arguments.adv_name}'
+    else:
+        arguments.adv_pickle = f'./models/{arguments.force_adv_name}-{arguments.adv_name}'
 
     arguments.prot_envname = f'{arguments.prot_name}-env'
     arguments.adv_envname = f'{arguments.adv_name}-env'
+    arguments.adv_env_pickle = f'{arguments.adv_pickle}-env'
 
 
 def get_config_arguments(existing_arguments):
