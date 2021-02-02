@@ -36,5 +36,15 @@
       "seed": 12345,
       "adv_percentage": 0.25
     }
+  },
+  {
+    "name": "original-big",
+    "params": {
+      "N_iter":500,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 4000,
+      "seed": 12345
+    }
   }
 ]
