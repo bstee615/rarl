@@ -109,9 +109,9 @@ def report_results(pickle_file, results, iteration=None):
         iteration = 'FINAL'
     logging.info(f'{iteration=}')
     logging.info(f'{results=}')
-    with pickle_file.open('wb') as f:
-        logging.info(f'{results=}')
-        pickle.dump(results, f)
+    if pickle_file is not None:
+        with pickle_file.open('wb') as f:
+            pickle.dump(results, f)
 
 
 def do(cmd_args):

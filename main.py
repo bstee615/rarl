@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 from stable_baselines3 import PPO
 # Set up environments
 from stable_baselines3.common.env_util import make_vec_env
@@ -96,9 +95,7 @@ def run(arguments):
             prot_env.norm_reward = False
             reward, lengths = evaluate_policy(prot, prot_env, args.N_eval_episodes,
                                               return_episode_rewards=True)
-            mean = np.mean(reward)
-            std = np.std(reward)
-            return mean, std
+            return reward
         else:
             # Train
             """
