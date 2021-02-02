@@ -1,5 +1,4 @@
-from time import sleep
-
+import gym
 from pybullet_envs.gym_locomotion_envs import Walker2DBulletEnv, HalfCheetahBulletEnv, \
     HopperBulletEnv, AntBulletEnv
 
@@ -47,16 +46,17 @@ class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 100.0 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 500.0 * adv_percentage  # TODO tune this parameter
 
 
 def main():
-    env = AdversarialAntBulletEnv(render=True, adv_percentage=1.0)
+    env = gym.make('AdversarialHopperBulletEnv-v0', agent='adversarial', render=True, adv_percentage=1.0)
     env.reset()
     for _ in range(1000):
         env.render()
-        sleep(1 / 30)
-        env.step_two_agents(None, env.adv_action_space.sample())
+        # sleep(1 / 30)
+        env.step_two_agents(env.action_space.sample(), env.adv_action_space.sample())
+        # env.step_two_agents(None, np.array([1.0] * 8))
         # env.step_two_agents(env.action_space.sample(), None)
         # env.step(0)
     env.close()
