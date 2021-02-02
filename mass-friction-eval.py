@@ -41,11 +41,16 @@ def main():
     # Run all combinations of hyperparameters
     results = []
     i = 0
-    for adv_percentage in ['0.25', '0.5', '0.75', '1.0', None]:
-        for adv_percentage_rarl in ['0.25', '0.5', '0.75', '1.0']:
+    adv_percentage = None
+    adv_percentage_rarl = '0.5'
+    for mass in ['0.8', '0.9', '1.0', '1.1', '1.2']:
+        # for adv_percentage in [None]:
+        for friction in ['0.8', '0.9', '1.0', '1.1', '1.2']:
             # Do all percentages
             cmd_args = get_fixed_args()
             cmd_args.append(f'--name=original-big_{adv_percentage_rarl}')
+            cmd_args.append(f'--mass_percentage={mass}')
+            cmd_args.append(f'--friction_percentage={friction}')
             if adv_percentage is None:
                 cmd_args.append(f'--force-no-adversarial')
             else:
@@ -58,20 +63,22 @@ def main():
             report_results(pickle_file, results, iteration=i)
             i += 1
 
-        # Do control
-        cmd_args = get_fixed_args()
-        cmd_args.append(f'--name=original-big')
-        cmd_args.append('--control')
-        if adv_percentage is None:
-            cmd_args.append(f'--force-no-adversarial')
-        else:
-            cmd_args.append(f'--force-adversarial')
-            cmd_args.append(f'--adv_percentage={adv_percentage}')
-            cmd_args.append(f'--force-adv-name=original-big_{adv_percentage}')
-        results.append(do(cmd_args))
-        logging.info(f'control {adv_percentage=}')
-        report_results(pickle_file, results, iteration=i)
-        i += 1
+            # Do control
+            cmd_args = get_fixed_args()
+            cmd_args.append(f'--name=original-big')
+            cmd_args.append('--control')
+            cmd_args.append(f'--mass_percentage={mass}')
+            cmd_args.append(f'--friction_percentage={friction}')
+            if adv_percentage is None:
+                cmd_args.append(f'--force-no-adversarial')
+            else:
+                cmd_args.append(f'--force-adversarial')
+                cmd_args.append(f'--adv_percentage={adv_percentage}')
+                cmd_args.append(f'--force-adv-name=original-big_{adv_percentage}')
+            results.append(do(cmd_args))
+            logging.info(f'control {adv_percentage=}')
+            report_results(pickle_file, results, iteration=i)
+            i += 1
 
     if log:
         report_results(pickle_file, results)
