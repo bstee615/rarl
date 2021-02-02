@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 from eval import report_results, config_logging, setup_log_dir
 from main import run, parse_args
 
@@ -13,7 +15,9 @@ fixed_args = """
 
 
 def do(cmd_args):
-    avg_reward, std_reward = run(parse_args(cmd_args))
+    rewards = run(parse_args(cmd_args))
+    avg_reward = np.average(rewards)
+    std_reward = np.std(rewards)
     results = {
         "args": cmd_args,
         "avg_reward": avg_reward,
@@ -28,6 +32,7 @@ def main():
         log_file, pickle_file = setup_log_dir()
         config_logging(log_file)
     else:
+        pickle_file = None
         logging.basicConfig(
             level=logging.INFO,
             format='[%(asctime)s] %(message)s'
@@ -36,13 +41,16 @@ def main():
     # Run all combinations of hyperparameters
     results = []
     i = 0
-
-    for adv_percentage in ['0.25', '0.5', '0.75', '1.0', None]:
+    adv_percentage = None
+    adv_percentage_rarl = '0.5'
+    for mass in ['0.8', '0.9', '1.0', '1.1', '1.2']:
         # for adv_percentage in [None]:
-        for adv_percentage_rarl in ['0.25', '0.5', '0.75', '1.0']:
+        for friction in ['0.8', '0.9', '1.0', '1.1', '1.2']:
             # Do all percentages
             cmd_args = get_fixed_args()
             cmd_args.append(f'--name=original-big_{adv_percentage_rarl}')
+            cmd_args.append(f'--mass_percentage={mass}')
+            cmd_args.append(f'--friction_percentage={friction}')
             if adv_percentage is None:
                 cmd_args.append(f'--force-no-adversarial')
             else:
@@ -52,25 +60,25 @@ def main():
 
             # Report results every so
             logging.info(f'{adv_percentage_rarl=} {adv_percentage=}')
-            if log:
-                report_results(pickle_file, results, iteration=i)
+            report_results(pickle_file, results, iteration=i)
             i += 1
 
-        # Do control
-        cmd_args = get_fixed_args()
-        cmd_args.append(f'--name=original-big')
-        cmd_args.append('--control')
-        if adv_percentage is None:
-            cmd_args.append(f'--force-no-adversarial')
-        else:
-            cmd_args.append(f'--force-adversarial')
-            cmd_args.append(f'--adv_percentage={adv_percentage}')
-            cmd_args.append(f'--force-adv-name=original-big_{adv_percentage}')
-        results.append(do(cmd_args))
-        logging.info(f'control {adv_percentage=}')
-        if log:
+            # Do control
+            cmd_args = get_fixed_args()
+            cmd_args.append(f'--name=original-big')
+            cmd_args.append('--control')
+            cmd_args.append(f'--mass_percentage={mass}')
+            cmd_args.append(f'--friction_percentage={friction}')
+            if adv_percentage is None:
+                cmd_args.append(f'--force-no-adversarial')
+            else:
+                cmd_args.append(f'--force-adversarial')
+                cmd_args.append(f'--adv_percentage={adv_percentage}')
+                cmd_args.append(f'--force-adv-name=original-big_{adv_percentage}')
+            results.append(do(cmd_args))
+            logging.info(f'control {adv_percentage=}')
             report_results(pickle_file, results, iteration=i)
-        i += 1
+            i += 1
 
     if log:
         report_results(pickle_file, results)
