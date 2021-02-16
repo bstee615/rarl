@@ -6,14 +6,8 @@ class BaseAdversarialEnv(abc.ABC):
     Wraps a Gym environment where two actors act in each step.
     """
 
-    def __init__(self, agent, bridge=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if agent == 'protagonist':
-            self.step = self.step_protagonist
-        else:
-            self.step = self.step_adversary
-            self.action_space = self.adv_action_space
-        self.bridge = bridge
 
     @property
     @abc.abstractmethod
@@ -26,6 +20,11 @@ class BaseAdversarialEnv(abc.ABC):
         Return the latest observation s_t
         """
         pass
+
+    def step(self, action):
+        adv_action = action[:self.adv_action_space.shape[0]]
+        prot_action = action[self.adv_action_space.shape[0]:]
+        return self.step_two_agents(prot_action, adv_action)
 
     @abc.abstractmethod
     def step_two_agents(self, prot_action, adv_action):

@@ -15,7 +15,7 @@ ts = 300
 seed = 123
 env_pairs = [
     ('HopperBulletEnv-v0', 'AdversarialHopperBulletEnv-v0'),
-    ('CartPoleBulletEnv-v1', 'AdversarialCartPoleBulletEnv-v0'),
+    # ('CartPoleBulletEnv-v1', 'AdversarialCartPoleBulletEnv-v0'), # TODO fix CartPole
     ('Walker2DBulletEnv-v0', 'AdversarialWalker2DBulletEnv-v0'),
     ('HalfCheetahBulletEnv-v0', 'AdversarialHalfCheetahBulletEnv-v0'),
     ('AntBulletEnv-v0', 'AdversarialAntBulletEnv-v0'),
@@ -36,21 +36,19 @@ def learn_love_log(agent, env):
 
 def init_adv(adv_env_id, disable_adv=False, env_kwargs=None):
     bridge = Bridge()
-    default_env_kwargs = {'renders' if 'CartPole' in adv_env_id else 'render': render, "bridge": bridge}
+    default_env_kwargs = {'renders' if 'CartPole' in adv_env_id else 'render': render}
     if env_kwargs is None:
         env_kwargs = {}
     env_kwargs.update(default_env_kwargs)
-    prot_env = make_vec_env(adv_env_id, env_kwargs={**env_kwargs, **{"agent": 'protagonist'}}, seed=seed)
-    adv_env = make_vec_env(adv_env_id, env_kwargs={**env_kwargs, **{"agent": 'adversary'}}, seed=seed)
-    prot_env = VecNormalize(prot_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-    adv_env = VecNormalize(adv_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-    prot_agent = PPO('MlpPolicy', prot_env, verbose=verbose, seed=seed, n_steps=ts)
+    env = make_vec_env(adv_env_id, env_kwargs=env_kwargs, seed=seed)
+    env = VecNormalize(env)
+    prot_agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts, bridge=bridge, is_protagonist=True)
     if disable_adv:
         bridge.link_agents(prot_agent, None)
     else:
-        adv_agent = PPO('MlpPolicy', adv_env, verbose=verbose, seed=seed, n_steps=ts)
+        adv_agent = PPO('MlpPolicy', env, verbose=verbose, seed=seed, n_steps=ts, bridge=bridge, is_protagonist=False)
         bridge.link_agents(prot_agent, adv_agent)
-    return prot_agent, prot_env
+    return prot_agent, env
 
 
 def init_control(env_id):
