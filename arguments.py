@@ -90,8 +90,7 @@ def populate_derivatives(arguments):
     else:
         arguments.adv_pickle = f'./models/{arguments.force_adv_name}-{arguments.adv_name}'
 
-    arguments.envname = f'env-{arguments.env}'
-    arguments.adv_env_pickle = f'{arguments.adv_pickle}-env'
+    arguments.envname = f'{arguments.prot_name}-env'
 
 
 def get_config_arguments(existing_arguments):

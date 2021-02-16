@@ -38,12 +38,12 @@ def setup():
     else:
         prot_logname = f'{args.logs}-{args.prot_name}' if args.logs else None
         prot_agent = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
-                         tensorboard_log=prot_logname, n_steps=args.N_steps)
+                         tensorboard_log=prot_logname, n_steps=args.N_steps, is_protagonist=True, bridge=bridge)
 
         if args.adversarial:
             adv_logname = f'{args.logs}-{args.adv_name}' if args.logs else None
             adv_agent = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
-                            tensorboard_log=adv_logname, n_steps=args.N_steps)
+                            tensorboard_log=adv_logname, n_steps=args.N_steps, is_protagonist=False, bridge=bridge)
         else:
             adv_agent = None
 
