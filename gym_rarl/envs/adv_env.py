@@ -1,5 +1,7 @@
 import abc
 
+import numpy as np
+
 
 class BaseAdversarialEnv(abc.ABC):
     """
@@ -23,7 +25,11 @@ class BaseAdversarialEnv(abc.ABC):
 
     def step(self, action):
         adv_action = action[:self.adv_action_space.shape[0]]
+        if np.all(np.isnan(adv_action)):
+            adv_action = None
         prot_action = action[self.adv_action_space.shape[0]:]
+        if np.all(np.isnan(prot_action)):
+            prot_action = None
         return self.step_two_agents(prot_action, adv_action)
 
     @abc.abstractmethod
