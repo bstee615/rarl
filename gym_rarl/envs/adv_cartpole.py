@@ -1,5 +1,6 @@
 from time import sleep
 
+import gym
 from gym.envs.classic_control.acrobot import *
 from pybullet_envs.bullet import CartPoleBulletEnv
 
@@ -11,31 +12,23 @@ class AdversarialCartPoleBulletEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     Wraps CartPole env and allows two actors to act in each step.
     """
 
-    @property
-    def adv_action_space(self):
-        return self._adv_action_space
-
     def __init__(self, mass_percentage=1.0, friction_percentage=1.0, adv_percentage=1.0, **kwargs):
-        bullet_kwargs = {}
-        if 'renders' in kwargs:
-            bullet_kwargs['renders'] = kwargs.pop('renders')
-        if 'discrete_actions' in kwargs:
-            bullet_kwargs['discrete_actions'] = kwargs.pop('discrete_actions')
-        CartPoleBulletEnv.__init__(self, **bullet_kwargs)
-
         self.adv_force_mag = 2.0 * adv_percentage  # TODO tune this parameter
-        action_dim = 2
-        if self._discrete_actions:
-            # 2 discrete actions per dimension
-            self._adv_action_space = spaces.MultiDiscrete([action_dim] * 2)
-        else:
-            action_high = np.array([self.adv_force_mag] * action_dim)
-            self._adv_action_space = spaces.Box(-action_high, action_high)
 
-        BaseAdversarialEnv.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
         self.mass_percentage = mass_percentage
         self.friction_percentage = friction_percentage
+
+    @property
+    def adv_action_space(self):
+        action_dim = 2
+        if self._discrete_actions:
+            # 2 discrete actions per dimension
+            return spaces.MultiDiscrete([action_dim] * 2)
+        else:
+            action_high = np.array([self.adv_force_mag] * action_dim)
+            return spaces.Box(-action_high, action_high)
 
     def reset(self):
         obs = super().reset()
@@ -86,12 +79,13 @@ class AdversarialCartPoleBulletEnv(BaseAdversarialEnv, CartPoleBulletEnv):
 
 
 def main():
-    env = AdversarialCartPoleBulletEnv(renders=True, adv_percentage=1.0)
+    env = gym.make('AdversarialCartPoleBulletEnv-v0', agent='adversarial', renders=True)
+    # env = gym.make('CartPoleBulletEnv-v1', renders=True)
     env.reset()
     for _ in range(1000):
-        env.render()
         sleep(1 / 30)
         env.step_two_agents(None, env.adv_action_space.sample())
+        env.render()
         # env.step_two_agents(env.action_space.sample(), None)
         # env.step(0)
     env.close()
