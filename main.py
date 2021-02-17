@@ -22,9 +22,9 @@ def setup():
     }
 
     env = make_vec_env(args.env, env_kwargs=env_kwargs, seed=args.seed)
-    env = VecNormalize(env)
 
     if args.evaluate:
+        env = VecNormalize.load(f'{args.pickle}-{args.envname}', env)
         prot_agent = PPO.load(f'{args.pickle}-{args.prot_name}')
         if prot_agent.seed != args.seed:
             logging.info(f'warning: {prot_agent.seed=} does not match { args.seed=}')
@@ -36,6 +36,7 @@ def setup():
         else:
             adv_agent = None
     else:
+        env = VecNormalize(env)
         prot_logname = f'{args.logs}-{args.prot_name}' if args.logs else None
         prot_agent = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
                          tensorboard_log=prot_logname, n_steps=args.N_steps, is_protagonist=True, bridge=bridge)
@@ -61,7 +62,7 @@ def run(arguments):
             env.training = False
             env.norm_reward = False
             reward, lengths = evaluate_policy(prot, env, args.N_eval_episodes,
-                                              return_episode_rewards=True)
+                                              return_episode_rewards=True, adversarial=adv if adv else None)
             return reward
         else:
             # Train

@@ -116,23 +116,25 @@ def report_results(pickle_file, results, iteration=None):
 
 def do(cmd_args):
     args = parse_args(cmd_args)
-    avg_reward, std_reward = run(args)
+    rew = run(args)
+    import numpy as np
+    avg_reward, std_reward = np.mean(rew), np.std(rew)
     logging.info(f'reward={avg_reward}+={std_reward}')
 
 
 if __name__ == '__main__':
-    basic = '--render --evaluate --force-adversarial --N_eval_episodes=10 --N_eval_timesteps=1000 --env AdversarialAntBulletEnv-v0'
+    basic = '--render --evaluate --N_eval_episodes=5 --env AdversarialAntBulletEnv-v0'
     cmds = []
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s] %(message)s',
     )
-    for p in ['0.25', '0.5', '0.0']:
-        for c in ['', '--control']:
-            app = basic
-            app += f' --adv_percentage={p} --name=original_25'
-            app += f' {c}'
-        cmds.append(app)
+    cmds.append(basic + ' --name original-big_0.5 --force-no-adversarial')
+    cmds.append(basic + ' --name original-big --control')
+    for p in ['0.25', '0.5', '0.75', '1.0']:
+        cmds.append(basic + ' --name original-big_0.5' + f' --adv_percentage {p}' + ' --force-adversarial')
+        cmds.append(
+            basic + ' --name original-big --control' + f' --adv_percentage {p} --force-adv-name original-big_{p}' + ' --force-adversarial')
     for cmd_args in cmds:
         do(cmd_args.split())
     # main()
