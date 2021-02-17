@@ -1,5 +1,3 @@
-from time import sleep
-
 import gym
 from pybullet_envs.gym_locomotion_envs import Walker2DBulletEnv, HalfCheetahBulletEnv, \
     HopperBulletEnv, AntBulletEnv
@@ -15,7 +13,7 @@ class AdversarialWalker2DBulletEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 50.0 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 12.5 * adv_percentage  # Tuned after 2 trains
 
 
 class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
@@ -26,7 +24,7 @@ class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulle
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 62.5 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 10.0 * adv_percentage  # Tuned after 2 trains
 
 
 class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
@@ -37,7 +35,7 @@ class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 18.75 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 18.75 * adv_percentage  # Tuned after 1 train
 
 
 class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
@@ -48,14 +46,14 @@ class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 500.0 * adv_percentage  # TODO tune this parameter
+        self.adv_force_mag = 125.0 * adv_percentage  # Tuned after 2 trains
 
 
 def main():
-    env = gym.make('AdversarialHopperBulletEnv-v0', render=True)
+    env = gym.make('AdversarialAntBulletEnv-v0', render=True)
     env.reset()
     for _ in range(1000):
-        sleep(1 / 30)
+        # sleep(1 / 60)
         env.step_two_agents(env.action_space.sample(), env.adv_action_space.sample())
         # env.step_two_agents(None, np.array([1.0] * 2))
         # env.step_two_agents(None, None)
