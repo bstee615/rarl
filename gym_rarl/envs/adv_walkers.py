@@ -46,7 +46,7 @@ class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 31.25 * adv_percentage  # Tuned after 3 trains
+        self.adv_force_mag = 7.5 * adv_percentage  # Tuned after 4 trains
 
 
 def main():
