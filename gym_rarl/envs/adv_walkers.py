@@ -13,7 +13,7 @@ class AdversarialWalker2DBulletEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 12.5 * adv_percentage  # Tuned after 2 trains
+        self.adv_force_mag = 6.25 * adv_percentage  # Tuned after 3 trains
 
 
 class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
@@ -24,7 +24,7 @@ class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulle
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 10.0 * adv_percentage  # Tuned after 2 trains
+        self.adv_force_mag = 2. * adv_percentage  # Tuned after 3 trains
 
 
 class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
@@ -35,7 +35,7 @@ class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 18.75 * adv_percentage  # Tuned after 1 train
+        self.adv_force_mag = 4.75 * adv_percentage  # Tuned after 3 trains
 
 
 class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
@@ -46,7 +46,7 @@ class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def __init__(self, adv_percentage=1.0, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 125.0 * adv_percentage  # Tuned after 2 trains
+        self.adv_force_mag = 31.25 * adv_percentage  # Tuned after 3 trains
 
 
 def main():
