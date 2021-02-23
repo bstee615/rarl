@@ -19,6 +19,7 @@ def setup():
         "adv_percentage": args.adv_percentage,
         "mass_percentage": args.mass_percentage,
         "friction_percentage": args.friction_percentage,
+        "simple_reward": args.simple_reward,
     }
 
     env = make_vec_env(args.env, env_kwargs=env_kwargs, seed=args.seed)

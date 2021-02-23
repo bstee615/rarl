@@ -45,6 +45,7 @@ def parse_args(cmd_args=None):
     parser.add_argument('--render', action='store_true')
     parser.add_argument("--force-adversarial", action='store_true')
     parser.add_argument("--force-no-adversarial", action='store_true')
+    parser.add_argument("--simple-reward", action='store_true')
 
     arguments = parser.parse_args(cmd_args, namespace=config_arguments)
 

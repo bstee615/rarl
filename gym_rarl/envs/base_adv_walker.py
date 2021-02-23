@@ -10,11 +10,12 @@ class BaseAdversarialWalkerEnv(BaseAdversarialEnv, WalkerBaseBulletEnv):
     Base class for environments with walker base (hopper, ant, etc).
     """
 
-    def __init__(self, mass_percentage=1.0, friction_percentage=1.0, **kwargs):
+    def __init__(self, mass_percentage=1.0, friction_percentage=1.0, simple_reward=False, **kwargs):
         super().__init__(**kwargs)
         self.links = []
         self.mass_percentage = mass_percentage
         self.friction_percentage = friction_percentage
+        self.simple_reward = simple_reward
 
     @property
     def parts_to_perturb(self):
@@ -111,8 +112,8 @@ class BaseAdversarialWalkerEnv(BaseAdversarialEnv, WalkerBaseBulletEnv):
             print(sum(self.rewards))
         self.HUD(state, action, done)
         self.reward += sum(self.rewards)
-
-        return state, sum(self.rewards), bool(done), {}
+        reward = progress if self.simple_reward else sum(self.rewards)
+        return state, reward, bool(done), {}
 
     def apply_adv_action(self, adv_action):
         """
