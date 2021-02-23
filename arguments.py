@@ -36,6 +36,7 @@ def parse_args(cmd_args=None):
     parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
                         help=', '.join(all_envs))
     parser.add_argument("--force-adv-name", type=str)
+    parser.add_argument('--save-every', type=int, default=None)
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -66,6 +67,8 @@ def validate_arguments(arguments):
     if arguments.N_steps:
         assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
+    if arguments.save_every:
+        assert arguments.save_every % (arguments.N_mu * arguments.N_steps) == 0
 
 
 def populate_derivatives(arguments):
