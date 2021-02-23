@@ -33,11 +33,15 @@ def get_fixed_args(is_rarl, env):
     return args
 
 
-def setup_log_dir():
+def setup_log_dir(eval_name=None):
     all_logs_dir = Path('logs')
-    filename_count = 0
-    while (log_dir := all_logs_dir / f'eval-{filename_count}').is_dir():
-        filename_count += 1
+    if eval_name:
+        log_dir = all_logs_dir / f'eval-{eval_name}'
+    else:
+        filename_count = 0
+        while (log_dir := all_logs_dir / f'eval-{filename_count}').is_dir():
+            filename_count += 1
+    assert not log_dir.is_dir()
     log_dir.mkdir()
     log_file = log_dir / 'info.log'
     pickle_file = log_dir / 'summary.pkl'

@@ -4,13 +4,13 @@ import numpy as np
 
 from eval import log, setup_log_dir, config_logging, get_fixed_args, do, report_results
 
-env = 'AdversarialAntBulletEnv-v0'
+env = 'AdversarialHalfCheetahBulletEnv-v0'
 
 
 def main():
     # Set up log dir
     if log:
-        log_file, pickle_file = setup_log_dir()
+        log_file, pickle_file = setup_log_dir(eval_name=f'mass-friction-{env}')
         config_logging(log_file)
     else:
         pickle_file = None

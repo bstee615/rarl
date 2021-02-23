@@ -8,7 +8,7 @@ env = 'AdversarialHalfCheetahBulletEnv-v0'
 def main():
     # Set up log dir
     if log:
-        log_file, pickle_file = setup_log_dir()
+        log_file, pickle_file = setup_log_dir(eval_name=f'{env}')
         config_logging(log_file)
     else:
         pickle_file = None
