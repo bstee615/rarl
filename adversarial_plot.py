@@ -25,6 +25,8 @@ def plot_results(results, env):
         first_adv_agent, first_adv_env, first_rewards = register(ar)
         second_adv_agent, second_adv_env, second_rewards = register(cr)
         assert first_adv_env == second_adv_env
+        assert first_adv_agent
+        assert not second_adv_agent
         filtered = [[
             i,
             np.percentile(first_rewards, i),
