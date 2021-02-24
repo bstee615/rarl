@@ -45,5 +45,15 @@
       "seed": 12345,
       "save-every": 200000
     }
+  },
+  {
+    "name": "original-million-bucks",
+    "params": {
+      "N_iter": 5,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 1000,
+      "seed": 12345
+    }
   }
 ]

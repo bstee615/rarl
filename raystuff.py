@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.hyperopt import HyperOptSearch
 from stable_baselines3.common.monitor import load_results
@@ -10,6 +9,7 @@ from stable_baselines3.common.results_plotter import ts2xy
 
 from arguments import parse_args
 from main import run
+from ray import tune
 
 
 def get_mean_reward_last_n_steps(n, log_dir):
@@ -29,7 +29,7 @@ def add_config_args(args, config):
     return args
 
 
-def monitor_dir(envname, config):
+def monitor_dir_name(envname, config):
     """
     Returns a directory named for this config's hyperparams
     """
@@ -37,20 +37,24 @@ def monitor_dir(envname, config):
 
 
 def trainable(config):
-    name = f'original-million_{config["adv_force"]}'
+    trial_dir = Path(tune.get_trial_dir()) if tune.get_trial_dir() is not None else Path.cwd()
+    name = f'original-million-bucks_{config["adv_force"]}'
     args = parse_args([
         '--name', name,
         '--env', config["envname"],
         '--log',
-        '--trainingconfig', str(Path(__file__).parent / 'trainingconfig.json')
+        '--trainingconfig', str(Path(__file__).parent / 'trainingconfig.json'),
+        '--root', str(trial_dir),
+        '--adv_force', str(config["adv_force"]),
     ])
     args = add_config_args(args, config)
-    args.monitor_dir = monitor_dir(config["envname"], config)
+    args.monitor_dir = str(trial_dir / monitor_dir_name(config["envname"], config))
+    logging.info(f'Running {name=} with {args=}')
 
     def evaluate(ts):
         # TODO may have to do something to prevent too-early stopping
         reward = get_mean_reward_last_n_steps(config["evaluate_mean_n"], args.monitor_dir)
-        logging.info(f'{name} {reward=} {ts=}')
+        logging.info(f'{name} {reward=:.2f} {ts=}')
         tune.report(reward=reward)
 
     run(args, evaluate_fn=evaluate)
@@ -71,14 +75,19 @@ def main():
     sched = ASHAScheduler()
 
     # Pass in a Trainable class or function to tune.run.
+    local_dir = str(Path.cwd() / "ray")
+    logging.info(f'{local_dir=}')
     anal = tune.run(trainable,
                     config=config,
                     num_samples=num_samples,
                     scheduler=sched,
                     search_alg=search,
-                    local_dir="ray",
+                    local_dir=local_dir,
                     metric="reward",
-                    mode="max")
+                    mode="max",
+                    log_to_file=True)
+    logging.info(f'best config: {anal.best_config}')
+    logging.info(f'best config: {anal.best_result}')
 
 
 if __name__ == '__main__':
