@@ -74,13 +74,14 @@ def run(arguments, evaluate_fn=None):
             for i in range(args.N_iter):
                 # Do N_mu rollouts training the protagonist
                 prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=i == 0)
+                steps_done += args.N_mu * args.N_steps
+                # Evaluate protagonist reward or whatever
                 if evaluate_fn is not None:
-                    evaluate_fn(prot)
+                    evaluate_fn(steps_done)
                 # Do N_nu rollouts training the adversary
                 if adv is not None:
                     adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=i == 0)
                 if args.save_every is not None:
-                    steps_done += args.N_mu * args.N_steps
                     if steps_done % args.save_every == 0:
                         logging.info(f'saving at {steps_done=}...')
                         prot.save(f'{args.pickle}-{args.prot_name}')

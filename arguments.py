@@ -15,6 +15,7 @@ def parse_args(cmd_args=None):
     # Parse name to know which config to do
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default=None, required=True)
+    parser.add_argument('--trainingconfig', type=str, default='./trainingconfig.json')
     name_arguments, remaining_args = parser.parse_known_args(cmd_args)
 
     # Load config file
@@ -104,7 +105,7 @@ def get_config_arguments(existing_arguments):
     and stores logs and models with prefix "name_version".
     Returns a Namespace object with parameters from trainingconfig.
     """
-    all_configs = json.load(open('trainingconfig.json'))
+    all_configs = json.load(open(existing_arguments.trainingconfig))
     assert not any('_' in config['name'] for config in all_configs)
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
     configfile_arguments = argparse.Namespace()
