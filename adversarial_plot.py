@@ -44,7 +44,7 @@ def plot_results(results, env):
         plt.show()
 
 
-for envname in ['Ant', 'HalfCheetah']:
+for envname in ['Ant', 'Hopper', 'HalfCheetah']:
     env = f'Adversarial{envname}BulletEnv-v0'
     with open(f'logs/eval-{env}/summary.pkl', 'rb') as f:
         results = pickle.load(f)
