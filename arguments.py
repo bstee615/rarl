@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 import gym_rarl.envs
 
@@ -15,7 +16,7 @@ def parse_args(cmd_args=None):
     # Parse name to know which config to do
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default=None, required=True)
-    parser.add_argument('--trainingconfig', type=str, default='./trainingconfig.json')
+    parser.add_argument('--trainingconfig', type=str, default=str(Path.cwd() / 'trainingconfig.json'))
     name_arguments, remaining_args = parser.parse_known_args(cmd_args)
 
     # Load config file
@@ -39,6 +40,7 @@ def parse_args(cmd_args=None):
     parser.add_argument("--force-adv-name", type=str)
     parser.add_argument('--save-every', type=int, default=None)
     parser.add_argument('--monitor-dir', type=str, default=None)
+    parser.add_argument('--root', type=str, default=str(Path.cwd()))
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -78,8 +80,9 @@ def populate_derivatives(arguments):
     """
     Add derivative arguments from the already parsed ones.
     """
-    arguments.pickle = f'./models/{arguments.name}'
-    arguments.logs = f'./logs/{arguments.name}'
+    arguments.root = Path(arguments.root)
+    arguments.pickle = arguments.root / f'models/{arguments.name}'
+    arguments.logs = arguments.root / f'logs/{arguments.name}'
     # Are we running RARL or control
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
@@ -92,7 +95,7 @@ def populate_derivatives(arguments):
     if arguments.force_adv_name is None:
         arguments.adv_pickle = f'{arguments.pickle}-{arguments.adv_name}'
     else:
-        arguments.adv_pickle = f'./models/{arguments.force_adv_name}-{arguments.adv_name}'
+        arguments.adv_pickle = arguments.root / f'models/{arguments.force_adv_name}-{arguments.adv_name}'
 
     arguments.envname = f'{arguments.prot_name}-env'
 
