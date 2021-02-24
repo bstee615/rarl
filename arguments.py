@@ -80,6 +80,12 @@ def populate_derivatives(arguments):
     """
     Add derivative arguments from the already parsed ones.
     """
+    import random
+    import numpy as np
+    import torch
+    random.seed(arguments.seed)
+    np.random.seed(arguments.seed)
+    torch.manual_seed(arguments.seed)
     arguments.root = Path(arguments.root)
     arguments.pickle = arguments.root / f'models/{arguments.name}'
     arguments.logs = arguments.root / f'logs/{arguments.name}'
