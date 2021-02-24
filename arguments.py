@@ -28,12 +28,12 @@ def parse_args(cmd_args=None):
     parser.add_argument('--N_nu', type=int)
     parser.add_argument('--N_eval_episodes', type=int)
     parser.add_argument('--N_eval_timesteps', type=int)
-    parser.add_argument('--adv_percentage', type=float, default=1.0)
+    parser.add_argument('--adv_force', type=float, default=None)
     parser.add_argument('--mass_percentage', type=float, default=1.0)
     parser.add_argument('--friction_percentage', type=float, default=1.0)
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
-    parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
+    parser.add_argument("--env", type=str, required=True,
                         help=', '.join(all_envs))
     parser.add_argument("--force-adv-name", type=str)
     parser.add_argument('--save-every', type=int, default=None)
@@ -63,8 +63,8 @@ def validate_arguments(arguments):
     """
     List of sanity assertions for commandline and trainingconfig arguments
     """
-    if arguments.adv_percentage:
-        assert 0.0 <= arguments.adv_percentage
+    if arguments.adv_force:
+        assert 0.0 <= arguments.adv_force
     if arguments.N_steps:
         assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
@@ -79,8 +79,6 @@ def populate_derivatives(arguments):
     arguments.pickle = f'./models/{arguments.name}'
     arguments.logs = f'./logs/{arguments.name}'
     # Are we running RARL or control
-    if arguments.adv_percentage is None:
-        arguments.adv_percentage = 1.0
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
         arguments.adversarial = arguments.force_adversarial

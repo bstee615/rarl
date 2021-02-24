@@ -12,8 +12,9 @@ class AdversarialCartPoleBulletEnv(BaseAdversarialEnv, CartPoleBulletEnv):
     Wraps CartPole env and allows two actors to act in each step.
     """
 
-    def __init__(self, mass_percentage=1.0, friction_percentage=1.0, adv_percentage=1.0, **kwargs):
-        self.adv_force_mag = 2.0 * adv_percentage  # TODO tune this parameter
+    def __init__(self, adv_force=None, mass_percentage=1.0, friction_percentage=1.0, **kwargs):
+        # TODO tune this parameter
+        self.adv_force_mag = adv_force if adv_force is not None else adv_force
 
         super().__init__(**kwargs)
 

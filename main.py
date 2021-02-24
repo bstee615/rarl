@@ -16,7 +16,7 @@ def setup():
     render_key = "renders" if 'CartPole' in args.env else "render"
     env_kwargs = {
         render_key: args.render,
-        "adv_percentage": args.adv_percentage,
+        "adv_force": args.adv_force,
         "mass_percentage": args.mass_percentage,
         "friction_percentage": args.friction_percentage,
         "simple_reward": args.simple_reward,
