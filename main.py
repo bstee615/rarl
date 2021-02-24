@@ -26,12 +26,12 @@ def setup(args):
 
     if args.evaluate:
         env = VecNormalize.load(f'{args.pickle}-{args.envname}', env)
-        prot_agent = PPO.load(f'{args.pickle}-{args.prot_name}')
+        prot_agent = PPO.load(f'{args.pickle}-{args.prot_name}', device='cpu')
         if prot_agent.seed != args.seed:
             logging.info(f'warning: {prot_agent.seed=} does not match { args.seed=}')
 
         if args.adversarial:
-            adv_agent = PPO.load(args.adv_pickle)
+            adv_agent = PPO.load(args.adv_pickle, device='cpu')
             if adv_agent.seed != args.seed:
                 logging.info(f'warning: {adv_agent.seed=} does not match { args.seed=}')
         else:
@@ -40,12 +40,14 @@ def setup(args):
         env = VecNormalize(env)
         prot_logname = f'{args.logs}-{args.prot_name}' if args.logs else None
         prot_agent = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
-                         tensorboard_log=prot_logname, n_steps=args.N_steps, is_protagonist=True, bridge=bridge)
+                         tensorboard_log=prot_logname, n_steps=args.N_steps, is_protagonist=True, bridge=bridge,
+                         device='cpu')
 
         if args.adversarial:
             adv_logname = f'{args.logs}-{args.adv_name}' if args.logs else None
             adv_agent = PPO("MlpPolicy", env, verbose=args.verbose, seed=args.seed,
-                            tensorboard_log=adv_logname, n_steps=args.N_steps, is_protagonist=False, bridge=bridge)
+                            tensorboard_log=adv_logname, n_steps=args.N_steps, is_protagonist=False, bridge=bridge,
+                            device='cpu')
         else:
             adv_agent = None
 
