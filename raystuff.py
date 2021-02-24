@@ -22,13 +22,6 @@ def get_mean_reward_last_n_steps(n, log_dir):
         logging.warning(f'{get_mean_reward_last_n_steps.__name__} called when the number of logged timesteps was 0')
 
 
-def add_config_args(args, config):
-    """
-    Returns a Namespace object with this config's hyperparameters mixed in.
-    """
-    return args
-
-
 def monitor_dir_name(envname, config):
     """
     Returns a directory named for this config's hyperparams
@@ -36,24 +29,23 @@ def monitor_dir_name(envname, config):
     return f'tmp-{envname}-{config["adv_force"]}'
 
 
-def trainable(config):
+def trainable(config, envname, trainingconfig, evaluate_mean_n):
     trial_dir = Path(tune.get_trial_dir()) if tune.get_trial_dir() is not None else Path.cwd()
     name = f'original-million-bucks_{config["adv_force"]}'
     args = parse_args([
         '--name', name,
-        '--env', config["envname"],
+        '--env', envname,
         '--log',
-        '--trainingconfig', str(Path(__file__).parent / 'trainingconfig.json'),
+        '--trainingconfig', str(trainingconfig),
         '--root', str(trial_dir),
         '--adv_force', str(config["adv_force"]),
     ])
-    args = add_config_args(args, config)
-    args.monitor_dir = str(trial_dir / monitor_dir_name(config["envname"], config))
+    args.monitor_dir = str(trial_dir / monitor_dir_name(envname, config))
     logging.info(f'Running {name=} with {args=}')
 
     def evaluate(ts):
         # TODO may have to do something to prevent too-early stopping
-        reward = get_mean_reward_last_n_steps(config["evaluate_mean_n"], args.monitor_dir)
+        reward = get_mean_reward_last_n_steps(evaluate_mean_n, args.monitor_dir)
         logging.info(f'{name} {reward=:.2f} {ts=}')
         tune.report(reward=reward)
 
@@ -64,10 +56,11 @@ def main():
     num_samples = 10
 
     logging.basicConfig(level=logging.INFO)
+    envname = 'AdversarialAntBulletEnv-v0'
+    trainingconfig = Path.cwd() / 'trainingconfig.json'
+    evaluate_mean_n = 1000  # Number of timesteps over which to evaluate the mean reward
     config = {
         "adv_force": tune.uniform(0, 1),  # TODO set range
-        "envname": 'AdversarialAntBulletEnv-v0',
-        "evaluate_mean_n": 1000,  # Number of timesteps over which to evaluate the mean reward
     }
 
     # TODO set search and sched
@@ -77,7 +70,10 @@ def main():
     # Pass in a Trainable class or function to tune.run.
     local_dir = str(Path.cwd() / "ray")
     logging.info(f'{local_dir=}')
-    anal = tune.run(trainable,
+    anal = tune.run(tune.with_parameters(trainable,
+                                         envname=envname,
+                                         trainingconfig=trainingconfig,
+                                         evaluate_mean_n=evaluate_mean_n),
                     config=config,
                     num_samples=num_samples,
                     scheduler=sched,
