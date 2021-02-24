@@ -60,7 +60,8 @@ def config_logging(log_file):
 
 
 def do(cmd_args):
-    rewards = run(parse_args(cmd_args))
+    args = parse_args(cmd_args)
+    rewards = run(args)
     avg_reward = np.average(rewards)
     std_reward = np.std(rewards)
     results = {

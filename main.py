@@ -10,7 +10,7 @@ from arguments import parse_args
 from bridge import Bridge
 
 
-def setup():
+def setup(args):
     bridge = Bridge()
 
     render_key = "renders" if 'CartPole' in args.env else "render"
@@ -54,10 +54,8 @@ def setup():
     return prot_agent, adv_agent, env
 
 
-def run(arguments, evaluate_fn=None):
-    global args
-    args = arguments
-    prot, adv, env = setup()
+def run(args, evaluate_fn=None):
+    prot, adv, env = setup(args)
     try:
         if args.evaluate:
             env.training = False
@@ -91,15 +89,19 @@ def run(arguments, evaluate_fn=None):
             env.save(f'{args.pickle}-{args.envname}')
 
             if adv is not None:
-                adv.save(arguments.adv_pickle)
+                adv.save(args.adv_pickle)
     finally:
         env.close()
 
 
-if __name__ == '__main__':
+def main():
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
     result = run(args)
     if result is not None:
         avg_reward, std_reward = result
         logging.info(f'reward={avg_reward}+={std_reward}')
+
+
+if __name__ == '__main__':
+    main()
