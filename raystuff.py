@@ -11,14 +11,14 @@ from arguments import parse_args
 from main import run
 
 
-def get_mean_reward_last_n_ts(ts_slice_len, log_dir):
+def get_mean_reward_last_n_steps(n, log_dir):
     x, y = ts2xy(load_results(log_dir), 'timesteps')
     if len(x) > 0:
         # Mean training reward over the last 100 episodes
-        mean_reward = np.mean(y[-ts_slice_len:])
+        mean_reward = np.mean(y[-n:])
         return mean_reward
     else:
-        logging.warning(f'{get_mean_reward_last_n_ts.__name__} called when the number of logged timesteps was 0')
+        logging.warning(f'{get_mean_reward_last_n_steps.__name__} called when the number of logged timesteps was 0')
 
 
 def add_config_args(args, config):
@@ -35,28 +35,31 @@ def monitor_dir(envname, config):
     return f'tmp-{envname}-{config["adv_force"]}'
 
 
-def get_trainable(envname, cmd_args):
-    def trainable(config):
-        args = add_config_args(cmd_args, config)
-        args.monitor_dir = monitor_dir(envname, config)
+def trainable(config):
+    args = add_config_args(config["args"], config)
+    args.monitor_dir = monitor_dir(config["envname"], config)
 
-        def evaluate(_):
-            tune.report(reward=get_mean_reward_last_n_ts(evaluate_mean_over_ts, args.monitor_dir))
+    def evaluate(_):
+        # TODO may have to do something to prevent too-early stopping
+        tune.report(reward=get_mean_reward_last_n_steps(config["evaluate_mean_n"], args.monitor_dir))
 
-        run(args, evaluate_fn=evaluate)
-
-    return trainable
-
-
-evaluate_mean_over_ts = 100  # Number of timesteps to evaluate the mean reward
+    run(args, evaluate_fn=evaluate)
 
 
 def main():
+    num_samples = 10
+    evaluate_mean_n = 1000  # Number of timesteps over which to evaluate the mean reward
+
     logging.basicConfig(level=logging.INFO)
     envname = 'AdversarialAntBulletEnv-v0'
-    config_name = 'original-million'
-    args = parse_args(['--name', config_name, '--env', envname])
-    trainable = get_trainable(envname, args)
+    trainingconfig_name = 'original-million'
+    args = parse_args(['--name', trainingconfig_name, '--env', envname])
+    config = {
+        "adv_force": tune.uniform(0, 1),  # TODO set range
+        "args": args,
+        "envname": envname,
+        "evaluate_mean_n": evaluate_mean_n,
+    }
 
     # TODO set search and sched
     search = HyperOptSearch()
@@ -64,10 +67,8 @@ def main():
 
     # Pass in a Trainable class or function to tune.run.
     anal = tune.run(trainable,
-                    config={
-                        "adv_force": tune.uniform(0, 1),  # TODO set range
-                    },
-                    num_samples=10,
+                    config=config,
+                    num_samples=num_samples,
                     scheduler=sched,
                     search_alg=search,
                     metric="reward",
