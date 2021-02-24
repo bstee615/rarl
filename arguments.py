@@ -37,6 +37,7 @@ def parse_args(cmd_args=None):
                         help=', '.join(all_envs))
     parser.add_argument("--force-adv-name", type=str)
     parser.add_argument('--save-every', type=int, default=None)
+    parser.add_argument('--monitor-dir', type=str, default=None)
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -118,8 +119,3 @@ def get_config_arguments(existing_arguments):
         logging.info(f'config file set arguments[{k}] = {v}')
         configfile_arguments.__setattr__(k, v)
     return configfile_arguments
-
-
-def set_args(new_args):
-    global args
-    args = new_args

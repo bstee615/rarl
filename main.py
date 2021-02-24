@@ -22,7 +22,7 @@ def setup():
         "simple_reward": args.simple_reward,
     }
 
-    env = make_vec_env(args.env, env_kwargs=env_kwargs, seed=args.seed)
+    env = make_vec_env(args.env, env_kwargs=env_kwargs, seed=args.seed, monitor_dir=args.monitor_dir)
 
     if args.evaluate:
         env = VecNormalize.load(f'{args.pickle}-{args.envname}', env)
@@ -54,7 +54,7 @@ def setup():
     return prot_agent, adv_agent, env
 
 
-def run(arguments):
+def run(arguments, evaluate_fn=None):
     global args
     args = arguments
     prot, adv, env = setup()
@@ -74,6 +74,8 @@ def run(arguments):
             for i in range(args.N_iter):
                 # Do N_mu rollouts training the protagonist
                 prot.learn(total_timesteps=args.N_mu * args.N_steps, reset_num_timesteps=i == 0)
+                if evaluate_fn is not None:
+                    evaluate_fn(prot)
                 # Do N_nu rollouts training the adversary
                 if adv is not None:
                     adv.learn(total_timesteps=args.N_nu * args.N_steps, reset_num_timesteps=i == 0)
