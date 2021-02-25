@@ -13,6 +13,7 @@
   },
   {
     "name": "original",
+    "description": "Original paper training scheme. Pulled from their Github repo.",
     "params": {
       "N_iter": 100,
       "N_mu": 1,
@@ -20,8 +21,7 @@
       "N_steps": 4000,
       "N_eval_episodes": 100,
       "N_eval_timesteps": 1000,
-      "seed": 12345,
-      "adv_percentage": 0.25
+      "seed": 12345
     }
   },
   {
@@ -33,17 +33,40 @@
       "N_steps": 2048,
       "N_eval_episodes": 100,
       "N_eval_timesteps": 1000,
-      "seed": 12345,
-      "adv_percentage": 0.25
+      "seed": 12345
     }
   },
   {
-    "name": "original-big",
+    "name": "big",
+    "description": "Based on the original paper, but scaled to 2M timesteps",
     "params": {
-      "N_iter":500,
+      "N_iter": 500,
       "N_mu": 1,
       "N_nu": 1,
       "N_steps": 4000,
+      "seed": 12345,
+      "save-every": 200000
+    }
+  },
+  {
+    "name": "million-bucks",
+    "description": "1M timesteps",
+    "params": {
+      "N_iter": 250,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 4000,
+      "seed": 12345
+    }
+  },
+  {
+    "name": "little",
+    "description": "Small run for testing Raylib configuration. 20k timesteps",
+    "params": {
+      "N_iter": 10,
+      "N_mu": 1,
+      "N_nu": 1,
+      "N_steps": 2000,
       "seed": 12345
     }
   }

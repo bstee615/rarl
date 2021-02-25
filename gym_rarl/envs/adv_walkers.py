@@ -10,10 +10,13 @@ class AdversarialWalker2DBulletEnv(BaseAdversarialWalkerEnv, Walker2DBulletEnv):
     def parts_to_perturb(self):
         return ['foot', 'foot_left']
 
-    def __init__(self, adv_percentage=1.0, **kwargs):
+    def __init__(self, adv_force=None, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 1.5625 * adv_percentage  # Tuned after 3 trains and normalized
+        if adv_force is None:
+            self.adv_force_mag = 1.5625  # Tuned after 3 trains and normalized
+        else:
+            self.adv_force_mag = adv_force
 
 
 class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulletEnv):
@@ -21,10 +24,13 @@ class AdversarialHalfCheetahBulletEnv(BaseAdversarialWalkerEnv, HalfCheetahBulle
     def parts_to_perturb(self):
         return ['torso', 'bfoot', 'ffoot']
 
-    def __init__(self, adv_percentage=1.0, **kwargs):
+    def __init__(self, adv_force=None, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 0.5 * adv_percentage  # Tuned after 3 trains and normalized
+        if adv_force is None:
+            self.adv_force_mag = 0.5  # Tuned after 3 trains and normalized
+        else:
+            self.adv_force_mag = adv_force
 
 
 class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
@@ -32,10 +38,13 @@ class AdversarialHopperBulletEnv(BaseAdversarialWalkerEnv, HopperBulletEnv):
     def parts_to_perturb(self):
         return ['foot']
 
-    def __init__(self, adv_percentage=1.0, **kwargs):
+    def __init__(self, adv_force=None, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 1.1875 * adv_percentage  # Tuned after 3 trains and normalized
+        if adv_force is None:
+            self.adv_force_mag = 1.1875  # Tuned after 3 trains and normalized
+        else:
+            self.adv_force_mag = adv_force
 
 
 class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
@@ -43,10 +52,13 @@ class AdversarialAntBulletEnv(BaseAdversarialWalkerEnv, AntBulletEnv):
     def parts_to_perturb(self):
         return ['front_left_foot', 'front_right_foot', 'left_back_foot', 'right_back_foot']
 
-    def __init__(self, adv_percentage=1.0, **kwargs):
+    def __init__(self, adv_force=None, **kwargs):
         super().__init__(**kwargs)
 
-        self.adv_force_mag = 5.625 * adv_percentage  # Tuned after 4 trains and normalized
+        if adv_force is None:
+            self.adv_force_mag = 5.625  # Tuned after 4 trains and normalized
+        else:
+            self.adv_force_mag = adv_force
 
 
 def main():

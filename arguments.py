@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 import gym_rarl.envs
 
@@ -9,12 +10,14 @@ all_envs = gym_rarl.envs.getList()
 
 
 def parse_args(cmd_args=None):
+    logging.info('Parsing args')
     if cmd_args is None:
         cmd_args = sys.argv[1:]
 
     # Parse name to know which config to do
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default=None, required=True)
+    parser.add_argument('--trainingconfig', type=str, default=str(Path.cwd() / 'trainingconfig.json'))
     name_arguments, remaining_args = parser.parse_known_args(cmd_args)
 
     # Load config file
@@ -28,14 +31,17 @@ def parse_args(cmd_args=None):
     parser.add_argument('--N_nu', type=int)
     parser.add_argument('--N_eval_episodes', type=int)
     parser.add_argument('--N_eval_timesteps', type=int)
-    parser.add_argument('--adv_percentage', type=float, default=1.0)
+    parser.add_argument('--adv_force', type=float, default=None)
     parser.add_argument('--mass_percentage', type=float, default=1.0)
     parser.add_argument('--friction_percentage', type=float, default=1.0)
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
-    parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
+    parser.add_argument("--env", type=str, required=True,
                         help=', '.join(all_envs))
     parser.add_argument("--force-adv-name", type=str)
+    parser.add_argument('--save-every', type=int, default=None)
+    parser.add_argument('--monitor-dir', type=str, default=None)
+    parser.add_argument('--root', type=str, default=str(Path.cwd()))
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -44,6 +50,7 @@ def parse_args(cmd_args=None):
     parser.add_argument('--render', action='store_true')
     parser.add_argument("--force-adversarial", action='store_true')
     parser.add_argument("--force-no-adversarial", action='store_true')
+    parser.add_argument("--simple-reward", action='store_true')
 
     arguments = parser.parse_args(cmd_args, namespace=config_arguments)
 
@@ -61,22 +68,31 @@ def validate_arguments(arguments):
     """
     List of sanity assertions for commandline and trainingconfig arguments
     """
-    if arguments.adv_percentage:
-        assert 0.0 <= arguments.adv_percentage
+    if arguments.adv_force:
+        assert 0.0 <= arguments.adv_force
     if arguments.N_steps:
         assert arguments.N_steps % 2 == 0
     assert not (arguments.force_adversarial and arguments.force_no_adversarial)
+    if arguments.save_every:
+        assert arguments.save_every % (arguments.N_mu * arguments.N_steps) == 0
 
 
 def populate_derivatives(arguments):
     """
     Add derivative arguments from the already parsed ones.
     """
-    arguments.pickle = f'./models/{arguments.name}'
-    arguments.logs = f'./logs/{arguments.name}'
+    import random
+    import numpy as np
+    import torch
+    random.seed(arguments.seed)
+    np.random.seed(arguments.seed)
+    torch.manual_seed(arguments.seed)
+    arguments.root = Path(arguments.root)
+    if arguments.monitor_dir is not None:
+        arguments.monitor_dir = str(arguments.root / arguments.monitor_dir)
+    arguments.pickle = arguments.root / f'models/{arguments.name}'
+    arguments.logs = arguments.root / f'logs/{arguments.name}'
     # Are we running RARL or control
-    if arguments.adv_percentage is None:
-        arguments.adv_percentage = 1.0
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
         arguments.adversarial = arguments.force_adversarial
@@ -88,7 +104,7 @@ def populate_derivatives(arguments):
     if arguments.force_adv_name is None:
         arguments.adv_pickle = f'{arguments.pickle}-{arguments.adv_name}'
     else:
-        arguments.adv_pickle = f'./models/{arguments.force_adv_name}-{arguments.adv_name}'
+        arguments.adv_pickle = arguments.root / f'models/{arguments.force_adv_name}-{arguments.adv_name}'
 
     arguments.envname = f'{arguments.prot_name}-env'
 
@@ -101,7 +117,7 @@ def get_config_arguments(existing_arguments):
     and stores logs and models with prefix "name_version".
     Returns a Namespace object with parameters from trainingconfig.
     """
-    all_configs = json.load(open('trainingconfig.json'))
+    all_configs = json.load(open(existing_arguments.trainingconfig))
     assert not any('_' in config['name'] for config in all_configs)
     assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
     configfile_arguments = argparse.Namespace()
@@ -116,8 +132,3 @@ def get_config_arguments(existing_arguments):
         logging.info(f'config file set arguments[{k}] = {v}')
         configfile_arguments.__setattr__(k, v)
     return configfile_arguments
-
-
-def set_args(new_args):
-    global args
-    args = new_args
