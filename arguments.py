@@ -87,7 +87,8 @@ def populate_derivatives(arguments):
     np.random.seed(arguments.seed)
     torch.manual_seed(arguments.seed)
     arguments.root = Path(arguments.root)
-    arguments.monitor_dir = str(arguments.root / arguments.monitor_dir)
+    if arguments.monitor_dir is not None:
+        arguments.monitor_dir = str(arguments.root / arguments.monitor_dir)
     arguments.pickle = arguments.root / f'models/{arguments.name}'
     arguments.logs = arguments.root / f'logs/{arguments.name}'
     # Are we running RARL or control

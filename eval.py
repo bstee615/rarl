@@ -12,10 +12,10 @@ log = True
 simple_reward = False
 
 
-def get_fixed_args(is_rarl, env):
+def get_fixed_args(is_rarl, env, N_eval_episodes=100, name=None):
     fixed_args = f"""
     --evaluate
-    --N_eval_episodes={3 if enjoy else 100}
+    --N_eval_episodes={3 if enjoy else N_eval_episodes}
     {'--simple-reward' if simple_reward else ''}
     --env={env}
     """
@@ -29,7 +29,7 @@ def get_fixed_args(is_rarl, env):
     else:
         rarl_suffix = ''
         args.append(f'--control')
-    args.append(f'--name=original-big{rarl_suffix}')
+    args.append(f'--name=original-big{rarl_suffix}' if name is None else name)
     return args
 
 
