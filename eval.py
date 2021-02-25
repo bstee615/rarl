@@ -5,9 +5,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from main import run, get_args
+from arguments import parse_args, set_args
+from main import run
 
-render = False
+render = True
 args_fmt = """
 --evaluate --force-adversarial
 --N_eval_episodes=10 --N_eval_timesteps=1000
@@ -22,6 +23,14 @@ hyperparameters = {
     "adv_percentage": list(reversed([0.0, 0.25, 0.5, 0.75, 1.0])),
     "agent": ['', '--control'],
 }
+
+
+# Free params
+# hyperparameters = {
+#     "seed": [1],
+#     "adv_percentage": list(reversed([0.0, 0.25, 0.5, 0.75, 1.0])),
+#     "agent": ['', '--control'],
+# }
 
 
 # Enjoy one seed
@@ -73,8 +82,9 @@ def main():
         cmd_args = args_fmt.format(*hp_set.values()).split()
         if render:
             cmd_args.append('--render')
-        args = get_args(cmd_args)
-        avg_reward, std_reward = run(args)
+        args = parse_args(cmd_args)
+        set_args(args)
+        avg_reward, std_reward = run()
         logging.info(f'reward={avg_reward}+={std_reward}')
         results.append({
             "hyperparameters": hp_set,

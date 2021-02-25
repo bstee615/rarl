@@ -58,6 +58,10 @@ class AdversarialRarlEnv(BaseRarlEnv):
     An environment for the adversarial agent to act, while the main agent takes actions.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.action_space = self.base.adv_action_space
+
     def step(self, adv_action):
         prestep_obs = self.base.get_ob()
         if self.bridge.prot_agent:

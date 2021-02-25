@@ -1,7 +1,4 @@
-import argparse
-import json
 import logging
-import sys
 
 import numpy as np
 from stable_baselines3 import PPO
@@ -10,77 +7,9 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecNormalize
 
+from arguments import args, parse_args
 from bridge import Bridge
-from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
 from gym_rarl.envs.rarl_env import ProtagonistRarlEnv, AdversarialRarlEnv
-
-
-def get_args(cmd_args=sys.argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--N_steps', type=int, default=None)  # Number of steps in a rolloout, N_traj in Algorithm 1
-    parser.add_argument('--N_iter', type=int, default=None)
-    parser.add_argument('--N_mu', type=int, default=None)
-    parser.add_argument('--N_nu', type=int, default=None)
-    parser.add_argument('--N_eval_episodes', type=int, default=None)
-    parser.add_argument('--N_eval_timesteps', type=int, default=None)
-    parser.add_argument('--seed', type=int, default=None)
-    parser.add_argument('--evaluate', action='store_true')
-    parser.add_argument('--name', type=str, default=None)
-    parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--log', action='store_true')
-    parser.add_argument('--control', action='store_true')
-    parser.add_argument('--render', action='store_true')
-    parser.add_argument('--adv_percentage', type=float, default=None)
-    parser.add_argument("--force-adversarial", action='store_true')
-    parser.add_argument("--force-no-adversarial", action='store_true')
-    arguments = parser.parse_args(cmd_args)
-
-    arguments.logs = f'./logs/{arguments.name}'
-
-    all_configs = json.load(open('trainingconfig.json'))
-    assert not any('_' in config['name'] for config in all_configs)
-    assert not any(any(k == 'name' for k in c['params'].keys()) for c in all_configs)
-
-    if arguments.name:
-        found = False
-        arguments.config_name = arguments.name
-        if '_' in arguments.name:
-            fields = arguments.name.split('_')
-            assert len(fields) == 2
-            arguments.config_name = fields[0]
-            arguments.version = fields[1]
-        for config in all_configs:
-            if config['name'] == arguments.config_name:
-                params = config['params']
-                for k, v in params.items():
-                    if arguments_v := arguments.__getattribute__(k) is not None:
-                        logging.info(f'config file overridden arguments[{k}] = {arguments_v} (was {v})')
-                    else:
-                        logging.info(f'config file set arguments[{k}] = {v}')
-                        arguments.__setattr__(k, v)
-                found = True
-                break
-        arguments.pickle = f'./models/{arguments.name}'
-        assert found
-    # Are we running RARL or control
-    if arguments.adv_percentage is None:
-        arguments.adv_percentage = 1.0
-
-    if arguments.control:
-        arguments.prot_name = 'control'
-        arguments.adversarial = arguments.force_adversarial
-    else:
-        arguments.prot_name = 'prot'
-        arguments.adversarial = not arguments.force_no_adversarial
-    arguments.adv_name = 'adv'
-
-    logging.info(f'arguments: {arguments}')
-
-    if arguments.adv_percentage: assert 0.0 <= arguments.adv_percentage
-    if arguments.N_steps: assert arguments.N_steps % 2 == 0
-    assert not (arguments.force_adversarial and arguments.force_no_adversarial)
-
-    return arguments
 
 
 def dummy(env_constructor, seed=None, evaluate_name=None):
@@ -105,15 +34,15 @@ def dummy(env_constructor, seed=None, evaluate_name=None):
 def setup():
     bridge = Bridge()
 
-    base_protenv = AdversarialCartPoleEnv(renders=args.render,
-                                          adv_percentage=args.adv_percentage if args.adversarial else 0.0)
+    base_protenv = args.env_constructor(renders=args.render,
+                                        adv_percentage=args.adv_percentage if args.adversarial else 0.0)
     prot_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
     prot_env = dummy(lambda: ProtagonistRarlEnv(base_protenv, bridge), seed=args.seed,
                      evaluate_name=prot_envname)
 
     if args.adversarial:
-        base_advenv = AdversarialCartPoleEnv(renders=args.render,
-                                             adv_percentage=args.adv_percentage)
+        base_advenv = args.env_constructor(renders=args.render,
+                                           adv_percentage=args.adv_percentage)
         adv_envname = f'{args.pickle}_{args.prot_name}env' if args.evaluate else None
         adv_env = dummy(lambda: AdversarialRarlEnv(base_advenv, bridge), seed=args.seed,
                         evaluate_name=adv_envname)
@@ -123,13 +52,13 @@ def setup():
     if args.evaluate:
         prot_agent = PPO.load(f'{args.pickle}_{args.prot_name}')
         if prot_agent.seed != args.seed:
-            logging.info(f'warning: {prot_agent.seed=} does not match {args.seed=}')
+            logging.info(f'warning: {prot_agent.seed=} does not match { args.seed=}')
         prot_agent.set_env(prot_env)
 
         if args.adversarial:
             adv_agent = PPO.load(f'{args.pickle}_{args.adv_name}')
             if adv_agent.seed != args.seed:
-                logging.info(f'warning: {adv_agent.seed=} does not match {args.seed=}')
+                logging.info(f'warning: {adv_agent.seed=} does not match { args.seed=}')
             adv_agent.set_env(adv_env)
         else:
             adv_agent = None
@@ -150,12 +79,7 @@ def setup():
     return prot_agent, adv_agent, prot_env, adv_env
 
 
-args = None
-
-
-def run(arguments):
-    global args
-    args = arguments
+def run():
     prot, adv, prot_env, adv_env = setup()
     try:
         if args.evaluate:
@@ -193,7 +117,9 @@ def run(arguments):
 
 
 if __name__ == '__main__':
-    result = run(get_args())
+    logging.basicConfig(level=logging.INFO)
+    args = parse_args()
+    result = run()
     if result is not None:
         avg_reward, std_reward = result
         logging.info(f'reward={avg_reward}+={std_reward}')

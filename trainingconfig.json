@@ -27,9 +27,9 @@
   {
     "name": "original-reduced",
     "params": {
-      "N_iter": 5,
-      "N_mu": 5,
-      "N_nu": 5,
+      "N_iter": 50,
+      "N_mu": 1,
+      "N_nu": 1,
       "N_steps": 2048,
       "N_eval_episodes": 100,
       "N_eval_timesteps": 1000,
