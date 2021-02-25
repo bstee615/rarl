@@ -52,10 +52,10 @@
     "name": "million-bucks",
     "description": "1M timesteps",
     "params": {
-      "N_iter": 500,
+      "N_iter": 250,
       "N_mu": 1,
       "N_nu": 1,
-      "N_steps": 2000,
+      "N_steps": 4000,
       "seed": 12345
     }
   },

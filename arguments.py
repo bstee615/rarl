@@ -10,6 +10,7 @@ all_envs = gym_rarl.envs.getList()
 
 
 def parse_args(cmd_args=None):
+    logging.info('Parsing args')
     if cmd_args is None:
         cmd_args = sys.argv[1:]
 
