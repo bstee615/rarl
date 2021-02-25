@@ -1,7 +1,4 @@
 #!/bin/bash
-
-module load miniconda3
-source activate /work/LAS/weile-lab/benjis/weile-lab/envs/rarl
-cd /work/LAS/weile-lab/benjis/weile-lab/rarl
+source /work/LAS/weile-lab/benjis/weile-lab/rarl/activate.sh
 set -x
 python3 main.py --log --verbose $@

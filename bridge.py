@@ -14,3 +14,6 @@ class Bridge:
         """
         self.prot_agent = prot_agent
         self.adv_agent = adv_agent
+
+    def other(self, im_protagonist):
+        return self.adv_agent if im_protagonist else self.prot_agent

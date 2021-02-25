@@ -3,10 +3,9 @@ import json
 import logging
 import sys
 
-from gym_rarl.envs.adv_cartpole import AdversarialCartPoleEnv
-from gym_rarl.envs.adv_walkers import AdversarialHopperEnv
+import gym_rarl.envs
 
-args = None
+all_envs = gym_rarl.envs.getList()
 
 
 def parse_args(cmd_args=None):
@@ -29,11 +28,14 @@ def parse_args(cmd_args=None):
     parser.add_argument('--N_nu', type=int)
     parser.add_argument('--N_eval_episodes', type=int)
     parser.add_argument('--N_eval_timesteps', type=int)
-    parser.add_argument('--adv_percentage', type=float)
+    parser.add_argument('--adv_percentage', type=float, default=1.0)
+    parser.add_argument('--mass_percentage', type=float, default=1.0)
+    parser.add_argument('--friction_percentage', type=float, default=1.0)
     parser.add_argument('--seed', type=int)
     # The name of the adversarial environment class
-    parser.add_argument("--env", type=str, default='AdversarialCartPoleEnv',
-                        help=', '.join([str(e) for e in [AdversarialCartPoleEnv, AdversarialHopperEnv]]))
+    parser.add_argument("--env", type=str, default='AdversarialCartPoleBulletEnv-v0',
+                        help=', '.join(all_envs))
+    parser.add_argument("--force-adv-name", type=str)
     # Flags
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -75,14 +77,20 @@ def populate_derivatives(arguments):
     # Are we running RARL or control
     if arguments.adv_percentage is None:
         arguments.adv_percentage = 1.0
-    arguments.env_constructor = globals()[arguments.env]
     if arguments.control:
         arguments.prot_name = f'control-{arguments.env}'
         arguments.adversarial = arguments.force_adversarial
     else:
         arguments.prot_name = f'prot-{arguments.env}'
         arguments.adversarial = not arguments.force_no_adversarial
+
     arguments.adv_name = f'adv-{arguments.env}'
+    if arguments.force_adv_name is None:
+        arguments.adv_pickle = f'{arguments.pickle}-{arguments.adv_name}'
+    else:
+        arguments.adv_pickle = f'./models/{arguments.force_adv_name}-{arguments.adv_name}'
+
+    arguments.envname = f'{arguments.prot_name}-env'
 
 
 def get_config_arguments(existing_arguments):
