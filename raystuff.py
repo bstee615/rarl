@@ -119,10 +119,12 @@ def main():
     # )
 
     # Implicitly use random search if search algo is not specified
+    # Unit t is iterations, not timesteps.
     sched = ASHAScheduler(
         time_attr='training_iteration',
-        max_t=100,
-        grace_period=1,  # Unit is iterations, not timesteps. TODO configure
+        max_t=500,
+        grace_period=125,
+        # This is configured to start evaluating at the point where agent performance starts to diverge wrt adv strength
     )
 
     # Pass in a Trainable class or function to tune.run.
