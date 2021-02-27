@@ -25,8 +25,8 @@ def setup(args):
     env = make_vec_env(args.env, env_kwargs=env_kwargs, seed=args.seed, monitor_dir=args.monitor_dir)
 
     if args.evaluate:
-        env = VecNormalize.load(f'{args.pickle}-{args.envname}', env)
-        prot_agent = PPO.load(f'{args.pickle}-{args.prot_name}', device='cpu')
+        env = VecNormalize.load(args.env_pickle, env)
+        prot_agent = PPO.load(args.prot_pickle, device='cpu')
         if prot_agent.seed != args.seed:
             logging.info(f'warning: {prot_agent.seed=} does not match { args.seed=}')
 
@@ -85,11 +85,11 @@ def run(args, evaluate_fn=None):
                 if args.save_every is not None:
                     if steps_done % args.save_every == 0:
                         logging.info(f'saving at {steps_done=}...')
-                        prot.save(f'{args.pickle}-{args.prot_name}')
-                        env.save(f'{args.pickle}-{args.envname}')
+                        prot.save(f'{args.prot_pickle}-{steps_done}')
+                        env.save(f'{args.env_pickle}-{steps_done}')
 
-            prot.save(f'{args.pickle}-{args.prot_name}')
-            env.save(f'{args.pickle}-{args.envname}')
+            prot.save(f'{args.prot_pickle}')
+            env.save(f'{args.env_pickle}')
 
             if adv is not None:
                 adv.save(args.adv_pickle)

@@ -33,8 +33,8 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     """
     Evaluate robustness to different environment parameters
     """
-    prot.save(f'{args.pickle}-{args.prot_name}')
-    prot.get_env().save(f'{args.pickle}-{args.envname}')
+    prot.save(args.prot_pickle)
+    prot.get_env().save(args.env_pickle)
     results = []
     for percentage in ['0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3']:
         cmd_args = get_fixed_args(True, env, N_eval_episodes=10, name=f'--name={name}')

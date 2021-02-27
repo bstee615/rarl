@@ -90,7 +90,8 @@ def populate_derivatives(arguments):
     arguments.root = Path(arguments.root)
     if arguments.monitor_dir is not None:
         arguments.monitor_dir = str(arguments.root / arguments.monitor_dir)
-    arguments.pickle = arguments.root / f'models/{arguments.name}'
+    arguments.pickle = arguments.root / 'models' / arguments.name
+    arguments.pickle.mkdir(exist_ok=True)
     arguments.logs = arguments.root / f'logs/{arguments.name}'
     # Are we running RARL or control
     if arguments.control:
@@ -99,14 +100,20 @@ def populate_derivatives(arguments):
     else:
         arguments.prot_name = f'prot-{arguments.env}'
         arguments.adversarial = not arguments.force_no_adversarial
+    arguments.prot_pickle = arguments.pickle / arguments.prot_name
 
     arguments.adv_name = f'adv-{arguments.env}'
     if arguments.force_adv_name is None:
-        arguments.adv_pickle = f'{arguments.pickle}-{arguments.adv_name}'
+        arguments.adv_pickle = arguments.pickle / arguments.adv_name
     else:
-        arguments.adv_pickle = arguments.root / f'models/{arguments.force_adv_name}-{arguments.adv_name}'
+        arguments.adv_pickle = arguments.root / 'models' / arguments.force_adv_name / arguments.adv_name
 
-    arguments.envname = f'{arguments.prot_name}-env'
+    arguments.env_name = f'{arguments.prot_name}-env'
+    arguments.env_pickle = arguments.pickle / arguments.env_name
+
+    arguments.prot_pickle = str(arguments.prot_pickle)
+    arguments.adv_pickle = str(arguments.adv_pickle)
+    arguments.env_pickle = str(arguments.env_pickle)
 
 
 def get_config_arguments(existing_arguments):
