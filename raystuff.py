@@ -151,9 +151,9 @@ def main():
     num_samples = 10
     envname = 'AdversarialAntBulletEnv-v0'
     trainingconfig = Path.cwd() / 'trainingconfig.json'
-    name = 'big'
+    name = 'million-bucks'
     name_fmt = name + '_{adv_force}'
-    max_t = 500
+    max_t = 250
 
     # Baseline parameters
     baseline_dir = Path.cwd() / 'ray/baseline'
@@ -198,7 +198,7 @@ def main():
     sched = ASHAScheduler(
         time_attr='training_iteration',  # Unit t is iterations, not timesteps.
         max_t=max_t,
-        grace_period=125,
+        grace_period=1,
         # This is configured to start evaluating at the point where agent performance starts to diverge wrt adv strength
     )
 
