@@ -39,6 +39,7 @@ def parse_args(cmd_args=None):
     parser.add_argument("--env", type=str, required=True,
                         help=', '.join(all_envs))
     parser.add_argument("--force-adv-name", type=str)
+    parser.add_argument("--force-prot-name", type=str)
     parser.add_argument('--save-every', type=int, default=None)
     parser.add_argument('--monitor-dir', type=str, default=None)
     parser.add_argument('--root', type=str, default=str(Path.cwd()))
@@ -91,7 +92,7 @@ def populate_derivatives(arguments):
     if arguments.monitor_dir is not None:
         arguments.monitor_dir = str(arguments.root / arguments.monitor_dir)
     arguments.pickle = arguments.root / 'models' / arguments.name
-    arguments.pickle.mkdir(exist_ok=True)
+    arguments.pickle.mkdir(parents=True, exist_ok=True)
     arguments.logs = arguments.root / f'logs/{arguments.name}'
     # Are we running RARL or control
     if arguments.control:
@@ -100,16 +101,21 @@ def populate_derivatives(arguments):
     else:
         arguments.prot_name = f'prot-{arguments.env}'
         arguments.adversarial = not arguments.force_no_adversarial
-    arguments.prot_pickle = arguments.pickle / arguments.prot_name
+
+    arguments.env_name = f'{arguments.prot_name}-env'
+
+    if arguments.force_prot_name is None:
+        arguments.prot_pickle = arguments.pickle / arguments.prot_name
+        arguments.env_pickle = arguments.pickle / arguments.env_name
+    else:
+        arguments.prot_pickle = arguments.root / 'models' / arguments.force_prot_name / arguments.prot_name
+        arguments.env_pickle = arguments.root / 'models' / arguments.force_prot_name / arguments.env_name
 
     arguments.adv_name = f'adv-{arguments.env}'
     if arguments.force_adv_name is None:
         arguments.adv_pickle = arguments.pickle / arguments.adv_name
     else:
         arguments.adv_pickle = arguments.root / 'models' / arguments.force_adv_name / arguments.adv_name
-
-    arguments.env_name = f'{arguments.prot_name}-env'
-    arguments.env_pickle = arguments.pickle / arguments.env_name
 
     arguments.prot_pickle = str(arguments.prot_pickle)
     arguments.adv_pickle = str(arguments.adv_pickle)

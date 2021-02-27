@@ -37,8 +37,15 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     """
     Evaluate robustness to different environment parameters
     """
-    prot.save(args.prot_pickle)
-    prot.get_env().save(args.env_pickle)
+    prot_pickle = Path(args.prot_pickle)
+    env_pickle = Path(args.env_pickle)
+    name_dir = prot_pickle.parent
+    tmp_dir = name_dir.parent / (name_dir.name + '_tmp')
+    tmp_dir.mkdir(exist_ok=True)
+    tmp_prot_pickle = tmp_dir / prot_pickle.name
+    tmp_env_pickle = tmp_dir / env_pickle.name
+    prot.save(str(tmp_prot_pickle))
+    prot.get_env().save(str(tmp_env_pickle))
     results = []
     logging.info(f'Evaluating robustness of {name=}')
     for percentage in ['0.6', '0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3', '1.4']:
@@ -48,6 +55,7 @@ def eval_robustness(args, prot, env, trainingconfig, name):
         cmd_args.append(f'--mass_percentage={percentage}')
         cmd_args.append(f'--trainingconfig={trainingconfig}')
         cmd_args.append(f'--root={args.root}')
+        cmd_args.append(f'--force-prot-name={tmp_dir.name}')
         result = do(cmd_args)
         results.append(result)
     return np.average(np.array([result["avg_reward"] for result in results]))
@@ -84,7 +92,6 @@ def record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfi
     cmd_args = [
         '--name', name,
         '--env', envname,
-        '--save_every',
         '--verbose',
         '--trainingconfig', str(trainingconfig),
         '--root', str(baseline_dir),
@@ -129,7 +136,7 @@ def main():
 
     baseline_dir = Path.cwd() / 'ray/baseline'
     baseline_logname = f'baseline_{name}-{envname}.json'
-    should_record_baseline = False
+    should_record_baseline = True  # Config
 
     if should_record_baseline:
         # Run baseline and exit
