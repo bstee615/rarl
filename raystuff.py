@@ -12,8 +12,11 @@ from main import run
 from ray import tune
 
 
-def get_mean_reward_last_n_steps(n, log_dir):
-    x, y = ts2xy(load_results(log_dir), 'timesteps')
+def get_mean_reward_last_n_steps(n, monitor_dir):
+    """
+    Get the mean episodal reward recorded over the last n steps
+    """
+    x, y = ts2xy(load_results(monitor_dir), 'timesteps')
     if len(x) > 0:
         # Mean training reward over the last 100 episodes
         mean_reward = np.mean(y[-n:])
@@ -55,7 +58,6 @@ def trainable(config, name_fmt, envname, trainingconfig, evaluate_mean_n):
     cmd_args = [
         '--name', name,
         '--env', envname,
-        '--log',
         '--trainingconfig', str(trainingconfig),
         '--root', str(trial_dir),
         '--monitor-dir', str(monitor_dir_name(envname, adv_force))
