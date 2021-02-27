@@ -43,6 +43,8 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     for percentage in ['0.6', '0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3', '1.4']:
         cmd_args = get_fixed_args(True, env, N_eval_episodes=10, name=f'--name={name}')
         # Eval specific params
+        if args.control:
+            cmd_args.append('--control')
         cmd_args.append(f'--force-no-adversarial')
         cmd_args.append(f'--mass_percentage={percentage}')
         cmd_args.append(f'--trainingconfig={trainingconfig}')
@@ -61,6 +63,8 @@ def eval_reward(args, prot, env, trainingconfig, name):
     logging.info(f'Evaluating reward in non-adversarial environment for {name=}')
     cmd_args = get_fixed_args(True, env, N_eval_episodes=50, name=f'--name={name}')
     # Eval specific params
+    if args.control:
+        cmd_args.append('--control')
     cmd_args.append(f'--force-no-adversarial')
     cmd_args.append(f'--trainingconfig={trainingconfig}')
     cmd_args.append(f'--root={args.root}')
@@ -117,7 +121,7 @@ def record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfi
         '--name', name,
         '--env', envname,
         '--verbose',
-        '--log',
+        '--control',
         '--trainingconfig', str(trainingconfig),
         '--root', str(baseline_dir),
         '--monitor-dir', str(monitor_dir_name(envname, 'baseline'))
