@@ -75,15 +75,18 @@ def trainable(config, name_fmt, envname, trainingconfig, baseline):
     ]
     cmd_args += ['--adv_force', str(adv_force)]
     args = parse_args(cmd_args)
-    assert len(baseline) == args.N_iter
+    if baseline is not None:
+        assert len(baseline) == args.N_iter
     # Add adversarial force
     logging.info(f'Running {name=} with {args=}')
 
     def evaluate(prot, ts):
-        reward = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
-        robustness = eval_robustness(args, prot, envname, trainingconfig, name)
-        robustness_vs_baseline = baseline[ts]["robustness"] - robustness
-        tune.report(reward=reward, robustness=robustness, robustness_vs_baseline=robustness_vs_baseline)
+        report = {}
+        report["reward"] = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
+        report["robustness"] = eval_robustness(args, prot, envname, trainingconfig, name)
+        if baseline is not None:
+            report["robustness_vs_baseline"] = baseline[ts]["robustness"] - report["robustness"]
+        tune.report(**report)
 
     run(args, evaluate_fn=evaluate)
 
@@ -93,6 +96,7 @@ def record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfi
         '--name', name,
         '--env', envname,
         '--verbose',
+        '--log',
         '--trainingconfig', str(trainingconfig),
         '--root', str(baseline_dir),
         '--monitor-dir', str(monitor_dir_name(envname, 'baseline'))
@@ -134,9 +138,13 @@ def main():
     name_fmt = name + '_{adv_force}'
     max_t = 500
 
+    # Baseline parameters
     baseline_dir = Path.cwd() / 'ray/baseline'
     baseline_logname = f'baseline_{name}-{envname}.json'
-    should_record_baseline = True  # Config
+
+    # Config
+    should_record_baseline = False
+    metric = "robustness"
 
     if should_record_baseline:
         # Run baseline and exit
@@ -145,14 +153,20 @@ def main():
         exit(0)
     else:
         # Load baseline
-        with (baseline_dir / baseline_logname).open() as f:
-            baseline = json.load(f)
+        baseline_file = baseline_dir / baseline_logname
+        if baseline_file.exists():
+            with baseline_file.open() as f:
+                baseline = json.load(f)
+            if len(baseline) != max_t:
+                logging.warning(f'Baseline at {baseline_file} is not complete. Skipping...')
+                baseline = None
+        else:
+            baseline = None
 
     config = {
         # Range is centered on the force that achieves the closest reward to the control (7.5)
         "adv_force": tune.qrandn(7.5, 2.5, 0.1),
     }
-    assert len(baseline) == max_t
 
     # https://docs.ray.io/en/master/tune/tutorials/overview.html#which-search-algorithm-scheduler-should-i-choose
     # Use BOHB for larger problems with a small number of hyperparameters
@@ -183,7 +197,7 @@ def main():
                     num_samples=num_samples,
                     scheduler=sched,
                     local_dir=local_dir,
-                    metric="robustness_vs_baseline",
+                    metric=metric,
                     mode="max",
                     log_to_file=True)
     logging.info(f'best config: {anal.best_config}')
