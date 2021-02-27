@@ -37,15 +37,7 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     """
     Evaluate robustness to different environment parameters
     """
-    prot_pickle = Path(args.prot_pickle)
-    env_pickle = Path(args.env_pickle)
-    name_dir = prot_pickle.parent
-    tmp_dir = name_dir.parent / (name_dir.name + '_tmp')
-    tmp_dir.mkdir(exist_ok=True)
-    tmp_prot_pickle = tmp_dir / prot_pickle.name
-    tmp_env_pickle = tmp_dir / env_pickle.name
-    prot.save(str(tmp_prot_pickle))
-    prot.get_env().save(str(tmp_env_pickle))
+    tmp_dir = save_prot(args, prot, '_robustness')
     results = []
     logging.info(f'Evaluating robustness of {name=}')
     for percentage in ['0.6', '0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3', '1.4']:
@@ -59,6 +51,35 @@ def eval_robustness(args, prot, env, trainingconfig, name):
         result = do(cmd_args)
         results.append(result)
     return np.average(np.array([result["avg_reward"] for result in results]))
+
+
+def eval_reward(args, prot, env, trainingconfig, name):
+    """
+    Evaluate reward in a non-adversarial environment
+    """
+    tmp_dir = save_prot(args, prot, '_reward')
+    logging.info(f'Evaluating reward in non-adversarial environment for {name=}')
+    cmd_args = get_fixed_args(True, env, N_eval_episodes=50, name=f'--name={name}')
+    # Eval specific params
+    cmd_args.append(f'--force-no-adversarial')
+    cmd_args.append(f'--trainingconfig={trainingconfig}')
+    cmd_args.append(f'--root={args.root}')
+    cmd_args.append(f'--force-prot-name={tmp_dir.name}')
+    result = do(cmd_args)
+    return result["avg_reward"], result["rewards"]
+
+
+def save_prot(args, prot, tail):
+    prot_pickle = Path(args.prot_pickle)
+    env_pickle = Path(args.env_pickle)
+    name_dir = prot_pickle.parent
+    tmp_dir = name_dir.parent / (name_dir.name + tail)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_prot_pickle = tmp_dir / prot_pickle.name
+    tmp_env_pickle = tmp_dir / env_pickle.name
+    prot.save(str(tmp_prot_pickle))
+    prot.get_env().save(str(tmp_env_pickle))
+    return tmp_dir
 
 
 def trainable(config, name_fmt, envname, trainingconfig, baseline):
@@ -82,7 +103,7 @@ def trainable(config, name_fmt, envname, trainingconfig, baseline):
 
     def evaluate(prot, ts):
         report = {}
-        report["reward"] = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
+        report["avg_reward"], report["rewards"] = eval_reward(args, prot, envname, trainingconfig, name)
         report["robustness"] = eval_robustness(args, prot, envname, trainingconfig, name)
         if baseline is not None:
             report["robustness_vs_baseline"] = baseline[ts]["robustness"] - report["robustness"]
@@ -110,14 +131,10 @@ def record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfi
 
     def evaluate(prot, ts):
         myeval = {}
-        reward = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
-        logging.info(f'baseline {reward=:.2f} {ts=}')
-        robustness = eval_robustness(args, prot, envname, trainingconfig, name)
-        logging.info(f'baseline {robustness=:.2f} {ts=}')
-
-        myeval["reward"] = reward
-        myeval["robustness"] = robustness
-
+        myeval["avg_reward"], myeval["rewards"] = eval_reward(args, prot, envname, trainingconfig, name)
+        myeval["robustness"] = eval_robustness(args, prot, envname, trainingconfig, name)
+        logging.info(f'baseline reward={myeval["avg_reward"]:.2f} {ts=}')
+        logging.info(f'baseline robustness={myeval["robustness"]:.2f} {ts=}')
         baseline.append(myeval)
 
     logging.info(f'Running baseline {name=} with {args=}')
