@@ -39,12 +39,14 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     prot.save(args.prot_pickle)
     prot.get_env().save(args.env_pickle)
     results = []
-    for percentage in ['0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3']:
+    logging.info(f'Evaluating robustness of {name=}')
+    for percentage in ['0.6', '0.7', '0.8', '0.9', '1.0', '1.1', '1.2', '1.3', '1.4']:
         cmd_args = get_fixed_args(True, env, N_eval_episodes=10, name=f'--name={name}')
         # Eval specific params
         cmd_args.append(f'--force-no-adversarial')
         cmd_args.append(f'--mass_percentage={percentage}')
         cmd_args.append(f'--trainingconfig={trainingconfig}')
+        cmd_args.append(f'--root={args.root}')
         result = do(cmd_args)
         results.append(result)
     return np.average(np.array([result["avg_reward"] for result in results]))
