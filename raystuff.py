@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -52,9 +53,9 @@ def eval_robustness(args, prot, env, trainingconfig, name):
     return np.average(np.array([result["avg_reward"] for result in results]))
 
 
-def trainable(config, name_fmt, envname, trainingconfig, evaluate_mean_n):
+def trainable(config, name_fmt, envname, trainingconfig, baseline):
     # Parse arguments
-    trial_dir = Path(tune.get_trial_dir()) if tune.get_trial_dir() is not None else Path.cwd()
+    trial_dir = Path(tune.get_trial_dir())
     adv_force = config["adv_force"]
     name = name_fmt.format(adv_force=adv_force)
     cmd_args = [
@@ -66,36 +67,53 @@ def trainable(config, name_fmt, envname, trainingconfig, evaluate_mean_n):
     ]
     cmd_args += ['--adv_force', str(adv_force)]
     args = parse_args(cmd_args)
+    assert len(baseline) == args.N_iter
     # Add adversarial force
     logging.info(f'Running {name=} with {args=}')
 
     def evaluate(prot, ts):
-        # reward = get_mean_reward_last_n_steps(evaluate_mean_n, args.monitor_dir)
-        # logging.info(f'{name} {reward=:.2f} {ts=}')
-        # tune.report(reward=reward)
+        reward = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
         robustness = eval_robustness(args, prot, envname, trainingconfig, name)
-        logging.info(f'{name} {robustness=:.2f} {ts=}')
-        tune.report(robustness=robustness)
+        robustness_vs_baseline = baseline[ts]["robustness"] - robustness
+        tune.report(reward=reward, robustness=robustness, robustness_vs_baseline=robustness_vs_baseline)
 
     run(args, evaluate_fn=evaluate)
 
 
-def test_trainable():
-    num_samples = 10
-    envname = 'AdversarialAntBulletEnv-v0'
-    trainingconfig = Path.cwd() / 'trainingconfig.json'
-    evaluate_mean_n = 1000  # Number of timesteps over which to evaluate the mean reward
-    name_fmt = 'million-bucks_{adv_force}'
-    config = {
-        # TODO: sample from control once, then different adversarial strengths
-        # Range is centered on the force that achieves the closest reward to the control (7.5)
-        "adv_force": 12,
-    }
-    trainable(config=config,
-              envname=envname,
-              trainingconfig=trainingconfig,
-              evaluate_mean_n=evaluate_mean_n,
-              name_fmt=name_fmt)
+def record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfig):
+    cmd_args = [
+        '--name', name,
+        '--env', envname,
+        '--save_every',
+        '--verbose',
+        '--trainingconfig', str(trainingconfig),
+        '--root', str(baseline_dir),
+        '--monitor-dir', str(monitor_dir_name(envname, 'baseline'))
+    ]
+    args = parse_args(cmd_args)
+
+    baseline = []
+    baseline_file = baseline_dir / baseline_logname
+    with baseline_file.open('w') as f:
+        json.dump(baseline, f)  # Zonk it to show we can write to it
+
+    def evaluate(prot, ts):
+        myeval = {}
+        reward = get_mean_reward_last_n_steps(args.N_mu * args.N_steps, args.monitor_dir)
+        logging.info(f'baseline {reward=:.2f} {ts=}')
+        robustness = eval_robustness(args, prot, envname, trainingconfig, name)
+        logging.info(f'baseline {robustness=:.2f} {ts=}')
+
+        myeval["reward"] = reward
+        myeval["robustness"] = robustness
+
+        baseline.append(myeval)
+
+    logging.info(f'Running baseline {name=} with {args=}')
+    run(args, evaluate_fn=evaluate)
+
+    with baseline_file.open('w') as f:
+        json.dump(baseline, f)
 
 
 def main():
@@ -105,14 +123,29 @@ def main():
     num_samples = 10
     envname = 'AdversarialAntBulletEnv-v0'
     trainingconfig = Path.cwd() / 'trainingconfig.json'
-    evaluate_mean_n = 1000  # Number of timesteps over which to evaluate the mean reward
-    name_fmt = 'million-bucks_{adv_force}'
+    name = 'big'
+    name_fmt = name + '_{adv_force}'
+    max_t = 500
+
+    baseline_dir = Path.cwd() / 'ray/baseline'
+    baseline_logname = f'baseline_{name}-{envname}.json'
+    should_record_baseline = False
+
+    if should_record_baseline:
+        # Run baseline and exit
+        baseline_dir.mkdir(parents=True, exist_ok=True)
+        record_baseline(baseline_dir, baseline_logname, name, envname, trainingconfig)
+        exit(0)
+    else:
+        # Load baseline
+        with (baseline_dir / baseline_logname).open() as f:
+            baseline = json.load(f)
 
     config = {
-        # TODO: sample from control once, then different adversarial strengths
         # Range is centered on the force that achieves the closest reward to the control (7.5)
         "adv_force": tune.qrandn(7.5, 2.5, 0.1),
     }
+    assert len(baseline) == max_t
 
     # https://docs.ray.io/en/master/tune/tutorials/overview.html#which-search-algorithm-scheduler-should-i-choose
     # Use BOHB for larger problems with a small number of hyperparameters
@@ -123,10 +156,10 @@ def main():
     # )
 
     # Implicitly use random search if search algo is not specified
-    # Unit t is iterations, not timesteps.
+    # Training config "big"
     sched = ASHAScheduler(
-        time_attr='training_iteration',
-        max_t=500,
+        time_attr='training_iteration',  # Unit t is iterations, not timesteps.
+        max_t=max_t,
         grace_period=125,
         # This is configured to start evaluating at the point where agent performance starts to diverge wrt adv strength
     )
@@ -137,13 +170,13 @@ def main():
     anal = tune.run(tune.with_parameters(trainable,
                                          envname=envname,
                                          trainingconfig=trainingconfig,
-                                         evaluate_mean_n=evaluate_mean_n,
-                                         name_fmt=name_fmt),
+                                         name_fmt=name_fmt,
+                                         baseline=baseline),
                     config=config,
                     num_samples=num_samples,
                     scheduler=sched,
                     local_dir=local_dir,
-                    metric="robustness",
+                    metric="robustness_vs_baseline",
                     mode="max",
                     log_to_file=True)
     logging.info(f'best config: {anal.best_config}')
@@ -152,4 +185,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # test_trainable()
